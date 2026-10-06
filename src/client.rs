@@ -2851,6 +2851,8 @@ struct ConnToken {
 #[derive(Default)]
 pub struct LoginConfigHandler {
     id: String,
+    #[cfg(all(windows, feature = "mcp-bridge"))]
+    pub(crate) mcp_bridge: bool,
     pub conn_type: ConnType,
     pub is_terminal_admin: bool,
     hash: Hash,
@@ -3064,6 +3066,12 @@ impl LoginConfigHandler {
 
     /// Load [`PeerConfig`].
     pub fn load_config(&self) -> PeerConfig {
+        #[cfg(all(windows, feature = "mcp-bridge"))]
+        if self.mcp_bridge {
+            let mut config = self.config.clone();
+            crate::mcp_bridge::isolate_config(&mut config);
+            return config;
+        }
         debug_assert!(self.id.len() > 0);
         PeerConfig::load(&self.id)
     }
@@ -3074,6 +3082,13 @@ impl LoginConfigHandler {
     ///
     /// * `config` - [`PeerConfig`] to save.
     pub fn save_config(&mut self, config: PeerConfig) {
+        #[cfg(all(windows, feature = "mcp-bridge"))]
+        if self.mcp_bridge {
+            let mut config = config;
+            crate::mcp_bridge::isolate_config(&mut config);
+            self.config = config;
+            return;
+        }
         config.store(&self.id);
         self.config = config;
     }

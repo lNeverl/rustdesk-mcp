@@ -30,6 +30,13 @@ macro_rules! my_println{
 /// If it returns [`Some`], then the process will continue, and flutter gui will be started.
 #[cfg(not(any(target_os = "android", target_os = "ios")))]
 pub fn core_main() -> Option<Vec<String>> {
+    #[cfg(all(windows, feature = "mcp-bridge"))]
+    if std::env::args().nth(1).as_deref() == Some("--mcp-bridge") {
+        if let Err(err) = crate::mcp_bridge::run_cli() {
+            eprintln!("MCP bridge stopped: {err}");
+        }
+        return None;
+    }
     if !crate::common::global_init() {
         return None;
     }

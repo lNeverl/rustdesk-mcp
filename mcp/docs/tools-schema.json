@@ -1,0 +1,2070 @@
+{
+  "version": "0.2.0",
+  "count": 40,
+  "tools": [
+    {
+      "name": "connect",
+      "description": "Connect a remote Windows peer with an independent bridge process. official reads official settings without writing back; credential_ref can override its password. profile uses private credentials. Never pass passwords. Elevation requires an admin_credential_ref and local human approval before connecting.",
+      "inputSchema": {
+        "properties": {
+          "peer_id": {
+            "title": "Peer Id",
+            "type": "string"
+          },
+          "credential_ref": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Credential Ref"
+          },
+          "admin_credential_ref": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Admin Credential Ref"
+          },
+          "elevate": {
+            "default": false,
+            "title": "Elevate",
+            "type": "boolean"
+          },
+          "config_source": {
+            "anyOf": [
+              {
+                "enum": [
+                  "profile",
+                  "official"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Config Source"
+          }
+        },
+        "required": [
+          "peer_id"
+        ],
+        "title": "connectArguments",
+        "type": "object"
+      },
+      "outputSchema": {
+        "additionalProperties": true,
+        "title": "connectDictOutput",
+        "type": "object"
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "openWorldHint": true
+      }
+    },
+    {
+      "name": "disconnect",
+      "description": "Close this server's terminal and connection. Reports whether terminal cleanup was confirmed.",
+      "inputSchema": {
+        "properties": {
+          "session_id": {
+            "title": "Session Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "session_id"
+        ],
+        "title": "disconnectArguments",
+        "type": "object"
+      },
+      "outputSchema": {
+        "additionalProperties": true,
+        "title": "disconnectDictOutput",
+        "type": "object"
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "status",
+      "description": "Read cached connection, identity, shell, cwd, policy and active command state. Does not insert a remote probe.",
+      "inputSchema": {
+        "properties": {
+          "session_id": {
+            "title": "Session Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "session_id"
+        ],
+        "title": "statusArguments",
+        "type": "object"
+      },
+      "outputSchema": {
+        "additionalProperties": true,
+        "title": "statusDictOutput",
+        "type": "object"
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "exec_command",
+      "description": "Execute PowerShell in the persistent terminal. Stable operation_id deduplicates retries. Readonly accepts diagnostic:system_info/processes/services/network/disk/unicode with default cwd only. Free commands or custom cwd require enabled write policy and local approval. PTY output is combined; busy rejects concurrent commands.",
+      "inputSchema": {
+        "properties": {
+          "session_id": {
+            "title": "Session Id",
+            "type": "string"
+          },
+          "operation_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Operation Id",
+            "type": "string"
+          },
+          "command": {
+            "title": "Command",
+            "type": "string"
+          },
+          "cwd": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Cwd"
+          },
+          "wait_timeout_s": {
+            "default": 10,
+            "maximum": 30,
+            "minimum": 0,
+            "title": "Wait Timeout S",
+            "type": "number"
+          },
+          "execution_timeout_s": {
+            "default": 300,
+            "maximum": 3600,
+            "minimum": 1,
+            "title": "Execution Timeout S",
+            "type": "number"
+          }
+        },
+        "required": [
+          "session_id",
+          "operation_id",
+          "command"
+        ],
+        "title": "exec_commandArguments",
+        "type": "object"
+      },
+      "outputSchema": {
+        "additionalProperties": true,
+        "title": "exec_commandDictOutput",
+        "type": "object"
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": true,
+        "openWorldHint": true
+      }
+    },
+    {
+      "name": "get_command_output",
+      "description": "Wait or page retained output by Unicode character offset. Waiting timeout leaves the command running. unknown means never automatically resubmit.",
+      "inputSchema": {
+        "properties": {
+          "session_id": {
+            "title": "Session Id",
+            "type": "string"
+          },
+          "command_id": {
+            "title": "Command Id",
+            "type": "string"
+          },
+          "offset": {
+            "default": 0,
+            "minimum": 0,
+            "title": "Offset",
+            "type": "integer"
+          },
+          "max_chars": {
+            "default": 32768,
+            "maximum": 65536,
+            "minimum": 1,
+            "title": "Max Chars",
+            "type": "integer"
+          },
+          "wait_timeout_s": {
+            "default": 0,
+            "maximum": 30,
+            "minimum": 0,
+            "title": "Wait Timeout S",
+            "type": "number"
+          }
+        },
+        "required": [
+          "session_id",
+          "command_id"
+        ],
+        "title": "get_command_outputArguments",
+        "type": "object"
+      },
+      "outputSchema": {
+        "additionalProperties": true,
+        "title": "get_command_outputDictOutput",
+        "type": "object"
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "cancel_command",
+      "description": "Cancel an approval or close the owned terminal. Confirmed terminal shutdown does not undo changes or guarantee that detached child processes stopped. Reconnect after terminal cancellation.",
+      "inputSchema": {
+        "properties": {
+          "session_id": {
+            "title": "Session Id",
+            "type": "string"
+          },
+          "command_id": {
+            "title": "Command Id",
+            "type": "string"
+          },
+          "reason": {
+            "default": "user_requested",
+            "maxLength": 256,
+            "title": "Reason",
+            "type": "string"
+          }
+        },
+        "required": [
+          "session_id",
+          "command_id"
+        ],
+        "title": "cancel_commandArguments",
+        "type": "object"
+      },
+      "outputSchema": {
+        "additionalProperties": true,
+        "title": "cancel_commandDictOutput",
+        "type": "object"
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "get_system_info",
+      "description": "Run a fixed readonly probe for OS/build/architecture, PowerShell, identity/SID, administrator membership, cwd and existing tools. Returns busy if another command owns the terminal.",
+      "inputSchema": {
+        "properties": {
+          "session_id": {
+            "title": "Session Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "session_id"
+        ],
+        "title": "get_system_infoArguments",
+        "type": "object"
+      },
+      "outputSchema": {
+        "additionalProperties": true,
+        "title": "get_system_infoDictOutput",
+        "type": "object"
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "list_sessions",
+      "description": "List this MCP instance's sessions and cached identities without connecting or probing.",
+      "inputSchema": {
+        "properties": {},
+        "title": "list_sessionsArguments",
+        "type": "object"
+      },
+      "outputSchema": {
+        "additionalProperties": true,
+        "title": "list_sessionsDictOutput",
+        "type": "object"
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "list_commands",
+      "description": "Page persistent operation history, including earlier sessions. Output is queried with get_command_output.",
+      "inputSchema": {
+        "properties": {
+          "session_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Session Id"
+          },
+          "offset": {
+            "default": 0,
+            "minimum": 0,
+            "title": "Offset",
+            "type": "integer"
+          },
+          "limit": {
+            "default": 50,
+            "maximum": 200,
+            "minimum": 1,
+            "title": "Limit",
+            "type": "integer"
+          }
+        },
+        "title": "list_commandsArguments",
+        "type": "object"
+      },
+      "outputSchema": {
+        "additionalProperties": true,
+        "title": "list_commandsDictOutput",
+        "type": "object"
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "list_audit_events",
+      "description": "Page local audit events. Stored scripts/output may contain sensitive data; credentials are not recorded.",
+      "inputSchema": {
+        "properties": {
+          "offset": {
+            "default": 0,
+            "minimum": 0,
+            "title": "Offset",
+            "type": "integer"
+          },
+          "limit": {
+            "default": 50,
+            "maximum": 200,
+            "minimum": 1,
+            "title": "Limit",
+            "type": "integer"
+          }
+        },
+        "title": "list_audit_eventsArguments",
+        "type": "object"
+      },
+      "outputSchema": {
+        "additionalProperties": true,
+        "title": "list_audit_eventsDictOutput",
+        "type": "object"
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "list_dir",
+      "description": "List one remote directory with metadata and bounded pagination. Reparse paths and configured root escapes are refused.",
+      "inputSchema": {
+        "properties": {
+          "session_id": {
+            "title": "Session Id",
+            "type": "string"
+          },
+          "remote_path": {
+            "title": "Remote Path",
+            "type": "string"
+          },
+          "offset": {
+            "default": 0,
+            "minimum": 0,
+            "title": "Offset",
+            "type": "integer"
+          },
+          "limit": {
+            "default": 100,
+            "maximum": 1000,
+            "minimum": 1,
+            "title": "Limit",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "session_id",
+          "remote_path"
+        ],
+        "title": "list_dirArguments",
+        "type": "object"
+      },
+      "outputSchema": {
+        "additionalProperties": true,
+        "title": "list_dirDictOutput",
+        "type": "object"
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "get_file_info",
+      "description": "Read remote file/directory size, timestamps and attributes.",
+      "inputSchema": {
+        "properties": {
+          "session_id": {
+            "title": "Session Id",
+            "type": "string"
+          },
+          "remote_path": {
+            "title": "Remote Path",
+            "type": "string"
+          }
+        },
+        "required": [
+          "session_id",
+          "remote_path"
+        ],
+        "title": "get_file_infoArguments",
+        "type": "object"
+      },
+      "outputSchema": {
+        "additionalProperties": true,
+        "title": "get_file_infoDictOutput",
+        "type": "object"
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "read_file",
+      "description": "Read a text file up to 8 MiB. Unicode codepoint pagination, optional lines/tail, encoding/BOM/newline and SHA256. Use the returned next_offset and hash for stable follow-up reads; binary or unknown encoding is refused.",
+      "inputSchema": {
+        "properties": {
+          "session_id": {
+            "title": "Session Id",
+            "type": "string"
+          },
+          "remote_path": {
+            "title": "Remote Path",
+            "type": "string"
+          },
+          "offset": {
+            "default": 0,
+            "minimum": 0,
+            "title": "Offset",
+            "type": "integer"
+          },
+          "max_chars": {
+            "default": 8192,
+            "maximum": 32768,
+            "minimum": 1,
+            "title": "Max Chars",
+            "type": "integer"
+          },
+          "encoding": {
+            "default": "auto",
+            "enum": [
+              "auto",
+              "utf8",
+              "utf16le",
+              "utf16be",
+              "gb18030"
+            ],
+            "title": "Encoding",
+            "type": "string"
+          },
+          "start_line": {
+            "default": 1,
+            "minimum": 1,
+            "title": "Start Line",
+            "type": "integer"
+          },
+          "tail_lines": {
+            "default": 0,
+            "maximum": 10000,
+            "minimum": 0,
+            "title": "Tail Lines",
+            "type": "integer"
+          },
+          "expected_sha256": {
+            "anyOf": [
+              {
+                "pattern": "^[0-9a-fA-F]{64}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Expected Sha256"
+          }
+        },
+        "required": [
+          "session_id",
+          "remote_path"
+        ],
+        "title": "read_fileArguments",
+        "type": "object"
+      },
+      "outputSchema": {
+        "additionalProperties": true,
+        "title": "read_fileDictOutput",
+        "type": "object"
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "write_file",
+      "description": "Approved text create/overwrite/append. Create is exclusive; existing files require expected_sha256. Locks during hash check/write, preserves encoding/BOM, retains a backup. Writes are not power-loss atomic. Larger/binary payloads use upload_file.",
+      "inputSchema": {
+        "properties": {
+          "session_id": {
+            "title": "Session Id",
+            "type": "string"
+          },
+          "operation_id": {
+            "title": "Operation Id",
+            "type": "string"
+          },
+          "remote_path": {
+            "title": "Remote Path",
+            "type": "string"
+          },
+          "content": {
+            "maxLength": 32768,
+            "title": "Content",
+            "type": "string"
+          },
+          "mode": {
+            "default": "create",
+            "enum": [
+              "create",
+              "overwrite",
+              "append"
+            ],
+            "title": "Mode",
+            "type": "string"
+          },
+          "expected_sha256": {
+            "anyOf": [
+              {
+                "pattern": "^[0-9a-fA-F]{64}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Expected Sha256"
+          },
+          "encoding": {
+            "default": "preserve",
+            "enum": [
+              "preserve",
+              "utf8",
+              "utf16le",
+              "utf16be",
+              "gb18030"
+            ],
+            "title": "Encoding",
+            "type": "string"
+          },
+          "newline": {
+            "default": "preserve",
+            "enum": [
+              "preserve",
+              "lf",
+              "crlf"
+            ],
+            "title": "Newline",
+            "type": "string"
+          }
+        },
+        "required": [
+          "session_id",
+          "operation_id",
+          "remote_path",
+          "content"
+        ],
+        "title": "write_fileArguments",
+        "type": "object"
+      },
+      "outputSchema": {
+        "additionalProperties": true,
+        "title": "write_fileDictOutput",
+        "type": "object"
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "edit_file",
+      "description": "Approved exact replacement with hash and exclusive file lock. Default requires one match, preserves encoding/BOM/newlines and retains backup. No regex replacements.",
+      "inputSchema": {
+        "properties": {
+          "session_id": {
+            "title": "Session Id",
+            "type": "string"
+          },
+          "operation_id": {
+            "title": "Operation Id",
+            "type": "string"
+          },
+          "remote_path": {
+            "title": "Remote Path",
+            "type": "string"
+          },
+          "old_text": {
+            "maxLength": 32768,
+            "minLength": 1,
+            "title": "Old Text",
+            "type": "string"
+          },
+          "new_text": {
+            "maxLength": 32768,
+            "title": "New Text",
+            "type": "string"
+          },
+          "expected_sha256": {
+            "pattern": "^[0-9a-fA-F]{64}$",
+            "title": "Expected Sha256",
+            "type": "string"
+          },
+          "replace_all": {
+            "default": false,
+            "title": "Replace All",
+            "type": "boolean"
+          },
+          "encoding": {
+            "default": "auto",
+            "enum": [
+              "auto",
+              "utf8",
+              "utf16le",
+              "utf16be",
+              "gb18030"
+            ],
+            "title": "Encoding",
+            "type": "string"
+          }
+        },
+        "required": [
+          "session_id",
+          "operation_id",
+          "remote_path",
+          "old_text",
+          "new_text",
+          "expected_sha256"
+        ],
+        "title": "edit_fileArguments",
+        "type": "object"
+      },
+      "outputSchema": {
+        "additionalProperties": true,
+        "title": "edit_fileDictOutput",
+        "type": "object"
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "find_files",
+      "description": "Bounded filename wildcard search. Does not follow directory junctions/symlinks. Reports scanned/skipped counts and truncation.",
+      "inputSchema": {
+        "properties": {
+          "session_id": {
+            "title": "Session Id",
+            "type": "string"
+          },
+          "remote_path": {
+            "title": "Remote Path",
+            "type": "string"
+          },
+          "pattern": {
+            "default": "*",
+            "title": "Pattern",
+            "type": "string"
+          },
+          "max_depth": {
+            "default": 8,
+            "maximum": 32,
+            "minimum": 0,
+            "title": "Max Depth",
+            "type": "integer"
+          },
+          "limit": {
+            "default": 100,
+            "maximum": 1000,
+            "minimum": 1,
+            "title": "Limit",
+            "type": "integer"
+          },
+          "max_files": {
+            "default": 10000,
+            "maximum": 100000,
+            "minimum": 1,
+            "title": "Max Files",
+            "type": "integer"
+          },
+          "timeout_s": {
+            "default": 10,
+            "maximum": 60,
+            "minimum": 1,
+            "title": "Timeout S",
+            "type": "integer"
+          },
+          "include_hidden": {
+            "default": false,
+            "title": "Include Hidden",
+            "type": "boolean"
+          },
+          "exclude": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Exclude"
+          }
+        },
+        "required": [
+          "session_id",
+          "remote_path"
+        ],
+        "title": "find_filesArguments",
+        "type": "object"
+      },
+      "outputSchema": {
+        "additionalProperties": true,
+        "title": "find_filesDictOutput",
+        "type": "object"
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "search_text",
+      "description": "Bounded content search, literal by default; regex has a per-match timeout. Returns paths, line numbers and capped text. Skips binary/inaccessible/large files and reparse directories.",
+      "inputSchema": {
+        "properties": {
+          "session_id": {
+            "title": "Session Id",
+            "type": "string"
+          },
+          "remote_path": {
+            "title": "Remote Path",
+            "type": "string"
+          },
+          "query": {
+            "maxLength": 1024,
+            "minLength": 1,
+            "title": "Query",
+            "type": "string"
+          },
+          "pattern": {
+            "default": "*",
+            "title": "Pattern",
+            "type": "string"
+          },
+          "regex": {
+            "default": false,
+            "title": "Regex",
+            "type": "boolean"
+          },
+          "case_sensitive": {
+            "default": false,
+            "title": "Case Sensitive",
+            "type": "boolean"
+          },
+          "max_depth": {
+            "default": 8,
+            "maximum": 32,
+            "minimum": 0,
+            "title": "Max Depth",
+            "type": "integer"
+          },
+          "limit": {
+            "default": 100,
+            "maximum": 500,
+            "minimum": 1,
+            "title": "Limit",
+            "type": "integer"
+          },
+          "max_files": {
+            "default": 10000,
+            "maximum": 100000,
+            "minimum": 1,
+            "title": "Max Files",
+            "type": "integer"
+          },
+          "timeout_s": {
+            "default": 10,
+            "maximum": 60,
+            "minimum": 1,
+            "title": "Timeout S",
+            "type": "integer"
+          },
+          "max_file_bytes": {
+            "default": 1048576,
+            "maximum": 8388608,
+            "minimum": 1,
+            "title": "Max File Bytes",
+            "type": "integer"
+          },
+          "encoding": {
+            "default": "auto",
+            "enum": [
+              "auto",
+              "utf8",
+              "utf16le",
+              "utf16be",
+              "gb18030"
+            ],
+            "title": "Encoding",
+            "type": "string"
+          },
+          "exclude": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Exclude"
+          }
+        },
+        "required": [
+          "session_id",
+          "remote_path",
+          "query"
+        ],
+        "title": "search_textArguments",
+        "type": "object"
+      },
+      "outputSchema": {
+        "additionalProperties": true,
+        "title": "search_textDictOutput",
+        "type": "object"
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "make_dir",
+      "description": "Approved directory creation. Existing paths and reparse components are refused.",
+      "inputSchema": {
+        "properties": {
+          "session_id": {
+            "title": "Session Id",
+            "type": "string"
+          },
+          "operation_id": {
+            "title": "Operation Id",
+            "type": "string"
+          },
+          "remote_path": {
+            "title": "Remote Path",
+            "type": "string"
+          }
+        },
+        "required": [
+          "session_id",
+          "operation_id",
+          "remote_path"
+        ],
+        "title": "make_dirArguments",
+        "type": "object"
+      },
+      "outputSchema": {
+        "additionalProperties": true,
+        "title": "make_dirDictOutput",
+        "type": "object"
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "rename_file",
+      "description": "Approved file/directory move. Destination must not exist; no overwrite or recursive deletion.",
+      "inputSchema": {
+        "properties": {
+          "session_id": {
+            "title": "Session Id",
+            "type": "string"
+          },
+          "operation_id": {
+            "title": "Operation Id",
+            "type": "string"
+          },
+          "remote_path": {
+            "title": "Remote Path",
+            "type": "string"
+          },
+          "destination": {
+            "title": "Destination",
+            "type": "string"
+          }
+        },
+        "required": [
+          "session_id",
+          "operation_id",
+          "remote_path",
+          "destination"
+        ],
+        "title": "rename_fileArguments",
+        "type": "object"
+      },
+      "outputSchema": {
+        "additionalProperties": true,
+        "title": "rename_fileDictOutput",
+        "type": "object"
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "remove_file",
+      "description": "Approved file or empty-directory removal. Files require expected SHA256. Recursive deletion is not exposed.",
+      "inputSchema": {
+        "properties": {
+          "session_id": {
+            "title": "Session Id",
+            "type": "string"
+          },
+          "operation_id": {
+            "title": "Operation Id",
+            "type": "string"
+          },
+          "remote_path": {
+            "title": "Remote Path",
+            "type": "string"
+          },
+          "expected_sha256": {
+            "anyOf": [
+              {
+                "pattern": "^[0-9a-fA-F]{64}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Expected Sha256"
+          }
+        },
+        "required": [
+          "session_id",
+          "operation_id",
+          "remote_path"
+        ],
+        "title": "remove_fileArguments",
+        "type": "object"
+      },
+      "outputSchema": {
+        "additionalProperties": true,
+        "title": "remove_fileDictOutput",
+        "type": "object"
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "get_file_hash",
+      "description": "Read remote file SHA256 without uploading the file.",
+      "inputSchema": {
+        "properties": {
+          "session_id": {
+            "title": "Session Id",
+            "type": "string"
+          },
+          "remote_path": {
+            "title": "Remote Path",
+            "type": "string"
+          }
+        },
+        "required": [
+          "session_id",
+          "remote_path"
+        ],
+        "title": "get_file_hashArguments",
+        "type": "object"
+      },
+      "outputSchema": {
+        "additionalProperties": true,
+        "title": "get_file_hashDictOutput",
+        "type": "object"
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "get_file_signature",
+      "description": "Read Windows Authenticode status/publisher. A valid signature is not a malware verdict.",
+      "inputSchema": {
+        "properties": {
+          "session_id": {
+            "title": "Session Id",
+            "type": "string"
+          },
+          "remote_path": {
+            "title": "Remote Path",
+            "type": "string"
+          }
+        },
+        "required": [
+          "session_id",
+          "remote_path"
+        ],
+        "title": "get_file_signatureArguments",
+        "type": "object"
+      },
+      "outputSchema": {
+        "additionalProperties": true,
+        "title": "get_file_signatureDictOutput",
+        "type": "object"
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "list_processes",
+      "description": "Page processes with PID, creation time, parent, path, command line and unavailable fields.",
+      "inputSchema": {
+        "properties": {
+          "session_id": {
+            "title": "Session Id",
+            "type": "string"
+          },
+          "offset": {
+            "default": 0,
+            "minimum": 0,
+            "title": "Offset",
+            "type": "integer"
+          },
+          "limit": {
+            "default": 100,
+            "maximum": 500,
+            "minimum": 1,
+            "title": "Limit",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "session_id"
+        ],
+        "title": "list_processesArguments",
+        "type": "object"
+      },
+      "outputSchema": {
+        "additionalProperties": true,
+        "title": "list_processesDictOutput",
+        "type": "object"
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "list_services",
+      "description": "Page service state, startup mode, account, executable and PID.",
+      "inputSchema": {
+        "properties": {
+          "session_id": {
+            "title": "Session Id",
+            "type": "string"
+          },
+          "offset": {
+            "default": 0,
+            "minimum": 0,
+            "title": "Offset",
+            "type": "integer"
+          },
+          "limit": {
+            "default": 100,
+            "maximum": 500,
+            "minimum": 1,
+            "title": "Limit",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "session_id"
+        ],
+        "title": "list_servicesArguments",
+        "type": "object"
+      },
+      "outputSchema": {
+        "additionalProperties": true,
+        "title": "list_servicesDictOutput",
+        "type": "object"
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "list_installed_software",
+      "description": "Inventory HKLM 64/32 bit and current user's uninstall registry; portable software is not exhaustive.",
+      "inputSchema": {
+        "properties": {
+          "session_id": {
+            "title": "Session Id",
+            "type": "string"
+          },
+          "offset": {
+            "default": 0,
+            "minimum": 0,
+            "title": "Offset",
+            "type": "integer"
+          },
+          "limit": {
+            "default": 100,
+            "maximum": 500,
+            "minimum": 1,
+            "title": "Limit",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "session_id"
+        ],
+        "title": "list_installed_softwareArguments",
+        "type": "object"
+      },
+      "outputSchema": {
+        "additionalProperties": true,
+        "title": "list_installed_softwareDictOutput",
+        "type": "object"
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "get_startup_items",
+      "description": "Inventory Run keys, startup folders, automatic services and scheduled tasks; report unavailable scopes.",
+      "inputSchema": {
+        "properties": {
+          "session_id": {
+            "title": "Session Id",
+            "type": "string"
+          },
+          "offset": {
+            "default": 0,
+            "minimum": 0,
+            "title": "Offset",
+            "type": "integer"
+          },
+          "limit": {
+            "default": 100,
+            "maximum": 500,
+            "minimum": 1,
+            "title": "Limit",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "session_id"
+        ],
+        "title": "get_startup_itemsArguments",
+        "type": "object"
+      },
+      "outputSchema": {
+        "additionalProperties": true,
+        "title": "get_startup_itemsDictOutput",
+        "type": "object"
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "get_network_connections",
+      "description": "Page TCP/UDP endpoints and owning PIDs; querying does not modify networking.",
+      "inputSchema": {
+        "properties": {
+          "session_id": {
+            "title": "Session Id",
+            "type": "string"
+          },
+          "offset": {
+            "default": 0,
+            "minimum": 0,
+            "title": "Offset",
+            "type": "integer"
+          },
+          "limit": {
+            "default": 100,
+            "maximum": 500,
+            "minimum": 1,
+            "title": "Limit",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "session_id"
+        ],
+        "title": "get_network_connectionsArguments",
+        "type": "object"
+      },
+      "outputSchema": {
+        "additionalProperties": true,
+        "title": "get_network_connectionsDictOutput",
+        "type": "object"
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "get_recent_events",
+      "description": "Read bounded recent events. Security logs may require elevation; messages are capped.",
+      "inputSchema": {
+        "properties": {
+          "session_id": {
+            "title": "Session Id",
+            "type": "string"
+          },
+          "log_name": {
+            "default": "System",
+            "enum": [
+              "Application",
+              "System",
+              "Security",
+              "Microsoft-Windows-Windows Defender/Operational"
+            ],
+            "title": "Log Name",
+            "type": "string"
+          },
+          "provider": {
+            "anyOf": [
+              {
+                "maxLength": 256,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Provider"
+          },
+          "hours": {
+            "default": 24,
+            "maximum": 168,
+            "minimum": 1,
+            "title": "Hours",
+            "type": "integer"
+          },
+          "levels": {
+            "anyOf": [
+              {
+                "items": {
+                  "maximum": 5,
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Levels"
+          },
+          "limit": {
+            "default": 20,
+            "maximum": 100,
+            "minimum": 1,
+            "title": "Limit",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "session_id"
+        ],
+        "title": "get_recent_eventsArguments",
+        "type": "object"
+      },
+      "outputSchema": {
+        "additionalProperties": true,
+        "title": "get_recent_eventsDictOutput",
+        "type": "object"
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "get_security_status",
+      "description": "Read Defender availability, realtime protection, engine mode, signature and scan timestamps.",
+      "inputSchema": {
+        "properties": {
+          "session_id": {
+            "title": "Session Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "session_id"
+        ],
+        "title": "get_security_statusArguments",
+        "type": "object"
+      },
+      "outputSchema": {
+        "additionalProperties": true,
+        "title": "get_security_statusDictOutput",
+        "type": "object"
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "kill_process",
+      "description": "Request human approval to terminate the exact PID and creation time. Protected processes are refused.",
+      "inputSchema": {
+        "properties": {
+          "session_id": {
+            "title": "Session Id",
+            "type": "string"
+          },
+          "operation_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Operation Id",
+            "type": "string"
+          },
+          "pid": {
+            "exclusiveMinimum": 4,
+            "title": "Pid",
+            "type": "integer"
+          },
+          "creation_time": {
+            "title": "Creation Time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "session_id",
+          "operation_id",
+          "pid",
+          "creation_time"
+        ],
+        "title": "kill_processArguments",
+        "type": "object"
+      },
+      "outputSchema": {
+        "additionalProperties": true,
+        "title": "kill_processDictOutput",
+        "type": "object"
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "control_service",
+      "description": "Request start/stop/restart with human approval and final state confirmation; critical services are refused.",
+      "inputSchema": {
+        "properties": {
+          "session_id": {
+            "title": "Session Id",
+            "type": "string"
+          },
+          "operation_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Operation Id",
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 256,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_.\\-]+$",
+            "title": "Name",
+            "type": "string"
+          },
+          "action": {
+            "enum": [
+              "start",
+              "stop",
+              "restart"
+            ],
+            "title": "Action",
+            "type": "string"
+          }
+        },
+        "required": [
+          "session_id",
+          "operation_id",
+          "name",
+          "action"
+        ],
+        "title": "control_serviceArguments",
+        "type": "object"
+      },
+      "outputSchema": {
+        "additionalProperties": true,
+        "title": "control_serviceDictOutput",
+        "type": "object"
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "run_defender_scan",
+      "description": "Request a Defender scan. May quarantine files. Scan submission and confirmed scan completion are separate fields.",
+      "inputSchema": {
+        "properties": {
+          "session_id": {
+            "title": "Session Id",
+            "type": "string"
+          },
+          "operation_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Operation Id",
+            "type": "string"
+          },
+          "scan_type": {
+            "default": "quick",
+            "enum": [
+              "quick",
+              "full",
+              "custom"
+            ],
+            "title": "Scan Type",
+            "type": "string"
+          },
+          "remote_path": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Remote Path"
+          },
+          "execution_timeout_s": {
+            "default": 1800,
+            "maximum": 3600,
+            "minimum": 30,
+            "title": "Execution Timeout S",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "session_id",
+          "operation_id"
+        ],
+        "title": "run_defender_scanArguments",
+        "type": "object"
+      },
+      "outputSchema": {
+        "additionalProperties": true,
+        "title": "run_defender_scanDictOutput",
+        "type": "object"
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "upload_file",
+      "description": "Upload one immutable captured local file using RustDesk's file channel, hash-verify staging, then commit. Human approval reviews source hash. Overwrite requires current remote SHA256 and retains a backup. No directory/automatic resume.",
+      "inputSchema": {
+        "properties": {
+          "session_id": {
+            "title": "Session Id",
+            "type": "string"
+          },
+          "operation_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Operation Id",
+            "type": "string"
+          },
+          "local_path": {
+            "title": "Local Path",
+            "type": "string"
+          },
+          "remote_path": {
+            "title": "Remote Path",
+            "type": "string"
+          },
+          "mode": {
+            "default": "create",
+            "enum": [
+              "create",
+              "overwrite"
+            ],
+            "title": "Mode",
+            "type": "string"
+          },
+          "expected_sha256": {
+            "anyOf": [
+              {
+                "pattern": "^[0-9a-fA-F]{64}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Expected Sha256"
+          },
+          "wait_timeout_s": {
+            "default": 10,
+            "maximum": 30,
+            "minimum": 0,
+            "title": "Wait Timeout S",
+            "type": "integer"
+          },
+          "execution_timeout_s": {
+            "default": 600,
+            "maximum": 3600,
+            "minimum": 1,
+            "title": "Execution Timeout S",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "session_id",
+          "operation_id",
+          "local_path",
+          "remote_path"
+        ],
+        "title": "upload_fileArguments",
+        "type": "object"
+      },
+      "outputSchema": {
+        "additionalProperties": true,
+        "title": "upload_fileDictOutput",
+        "type": "object"
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "download_file",
+      "description": "Download one file to a new absolute local path after human approval. Verify local SHA256 against remote before/after hashes. Existing local destinations are refused; use a new path.",
+      "inputSchema": {
+        "properties": {
+          "session_id": {
+            "title": "Session Id",
+            "type": "string"
+          },
+          "operation_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Operation Id",
+            "type": "string"
+          },
+          "remote_path": {
+            "title": "Remote Path",
+            "type": "string"
+          },
+          "local_path": {
+            "title": "Local Path",
+            "type": "string"
+          },
+          "wait_timeout_s": {
+            "default": 10,
+            "maximum": 30,
+            "minimum": 0,
+            "title": "Wait Timeout S",
+            "type": "integer"
+          },
+          "execution_timeout_s": {
+            "default": 600,
+            "maximum": 3600,
+            "minimum": 1,
+            "title": "Execution Timeout S",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "session_id",
+          "operation_id",
+          "remote_path",
+          "local_path"
+        ],
+        "title": "download_fileArguments",
+        "type": "object"
+      },
+      "outputSchema": {
+        "additionalProperties": true,
+        "title": "download_fileDictOutput",
+        "type": "object"
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "list_runbooks",
+      "description": "List packaged PowerShell runbooks and full review text. These are templates, not automatic installation.",
+      "inputSchema": {
+        "properties": {},
+        "title": "list_runbooksArguments",
+        "type": "object"
+      },
+      "outputSchema": {
+        "additionalProperties": true,
+        "title": "list_runbooksDictOutput",
+        "type": "object"
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "exec_script",
+      "description": "Approve full UTF-8 .ps1 text and immutable SHA256, upload using the official file channel, execute with scalar typed parameters, retain artifacts. Choose local_path OR a listed runbook. Existing shell is default; shell_path explicitly invokes a separate PowerShell process. Use cleanup_artifacts for recorded files.",
+      "inputSchema": {
+        "properties": {
+          "session_id": {
+            "title": "Session Id",
+            "type": "string"
+          },
+          "operation_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Operation Id",
+            "type": "string"
+          },
+          "local_path": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Local Path"
+          },
+          "runbook": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Runbook"
+          },
+          "parameters": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Parameters"
+          },
+          "shell_path": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Shell Path"
+          },
+          "shell_sha256": {
+            "anyOf": [
+              {
+                "pattern": "^[0-9a-fA-F]{64}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Shell Sha256"
+          },
+          "execution_timeout_s": {
+            "default": 600,
+            "maximum": 3600,
+            "minimum": 1,
+            "title": "Execution Timeout S",
+            "type": "integer"
+          },
+          "portable_deployment_command_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Portable Deployment Command Id"
+          }
+        },
+        "required": [
+          "session_id",
+          "operation_id"
+        ],
+        "title": "exec_scriptArguments",
+        "type": "object"
+      },
+      "outputSchema": {
+        "additionalProperties": true,
+        "title": "exec_scriptDictOutput",
+        "type": "object"
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": true,
+        "openWorldHint": true
+      }
+    },
+    {
+      "name": "download_url",
+      "description": "Opt-in trusted manifest download: HTTPS source, allowlisted redirects, fixed SHA256, bounded local staging, official upload and exclusive remote create. Arbitrary URLs/untrusted hashes are not accepted. Download progress can have unknown total.",
+      "inputSchema": {
+        "properties": {
+          "session_id": {
+            "title": "Session Id",
+            "type": "string"
+          },
+          "operation_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Operation Id",
+            "type": "string"
+          },
+          "asset_ref": {
+            "title": "Asset Ref",
+            "type": "string"
+          },
+          "remote_path": {
+            "title": "Remote Path",
+            "type": "string"
+          },
+          "execution_timeout_s": {
+            "default": 1200,
+            "maximum": 3600,
+            "minimum": 30,
+            "title": "Execution Timeout S",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "session_id",
+          "operation_id",
+          "asset_ref",
+          "remote_path"
+        ],
+        "title": "download_urlArguments",
+        "type": "object"
+      },
+      "outputSchema": {
+        "additionalProperties": true,
+        "title": "download_urlDictOutput",
+        "type": "object"
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": true,
+        "openWorldHint": true
+      }
+    },
+    {
+      "name": "deploy_pwsh_portable",
+      "description": "Opt-in pinned official PowerShell ZIP deployment into a new owned directory, hash-check before bounded safe extraction and version probe. Windows x64 only. No MSI, PATH, registry changes or default shell switch; no unchecked cache reuse.",
+      "inputSchema": {
+        "properties": {
+          "session_id": {
+            "title": "Session Id",
+            "type": "string"
+          },
+          "operation_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Operation Id",
+            "type": "string"
+          },
+          "asset_ref": {
+            "default": "pwsh-7.4.20-win-x64",
+            "title": "Asset Ref",
+            "type": "string"
+          },
+          "execution_timeout_s": {
+            "default": 1800,
+            "maximum": 3600,
+            "minimum": 30,
+            "title": "Execution Timeout S",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "session_id",
+          "operation_id"
+        ],
+        "title": "deploy_pwsh_portableArguments",
+        "type": "object"
+      },
+      "outputSchema": {
+        "additionalProperties": true,
+        "title": "deploy_pwsh_portableDictOutput",
+        "type": "object"
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": true,
+        "openWorldHint": true
+      }
+    },
+    {
+      "name": "cleanup_artifacts",
+      "description": "Approve deletion of this session's recorded artifacts only. Verify each file hash, reject reparse paths and remove directories only if empty. Changed/partial/unrecorded content remains with cleanup_pending; audit is retained.",
+      "inputSchema": {
+        "properties": {
+          "session_id": {
+            "title": "Session Id",
+            "type": "string"
+          },
+          "operation_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Operation Id",
+            "type": "string"
+          },
+          "command_id": {
+            "title": "Command Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "session_id",
+          "operation_id",
+          "command_id"
+        ],
+        "title": "cleanup_artifactsArguments",
+        "type": "object"
+      },
+      "outputSchema": {
+        "additionalProperties": true,
+        "title": "cleanup_artifactsDictOutput",
+        "type": "object"
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": true,
+        "openWorldHint": true
+      }
+    },
+    {
+      "name": "analyze_file_hash",
+      "description": "Optional VirusTotal hash-only lookup, enabled by local DPAPI API-key configuration. Sends no file content. Unknown/not-found/unavailable is not a clean verdict.",
+      "inputSchema": {
+        "properties": {
+          "sha256": {
+            "pattern": "^[0-9a-fA-F]{64}$",
+            "title": "Sha256",
+            "type": "string"
+          }
+        },
+        "required": [
+          "sha256"
+        ],
+        "title": "analyze_file_hashArguments",
+        "type": "object"
+      },
+      "outputSchema": {
+        "additionalProperties": true,
+        "title": "analyze_file_hashDictOutput",
+        "type": "object"
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      }
+    }
+  ]
+}

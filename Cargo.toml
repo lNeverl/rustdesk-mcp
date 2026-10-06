@@ -20,8 +20,14 @@ path = "src/naming.rs"
 name = "service"
 path = "src/service.rs"
 
+[[bin]]
+name = "rustdesk-mcp-bridge"
+path = "src/mcp_bridge_main.rs"
+required-features = ["mcp-bridge"]
+
 [features]
 inline = []
+mcp-bridge = []
 use_samplerate = ["samplerate", "libsamplerate-sys"]
 use_rubato = ["rubato"]
 use_dasp = ["dasp"]

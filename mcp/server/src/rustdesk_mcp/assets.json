@@ -1,0 +1,10 @@
+{
+  "pwsh-7.4.20-win-x64": {
+    "url": "https://github.com/PowerShell/PowerShell/releases/download/v7.4.20/PowerShell-7.4.20-win-x64.zip",
+    "sha256": "fb88cd3731847006b157978d6c0a426390d346696d91d1ed85b5e5eb88cb2d40",
+    "version": "7.4.20",
+    "architecture": "x64",
+    "source": "https://github.com/PowerShell/PowerShell/releases/tag/v7.4.20",
+    "redirect_hosts": ["github.com", "release-assets.githubusercontent.com", "objects.githubusercontent.com"]
+  }
+}
