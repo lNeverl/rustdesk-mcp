@@ -1,6 +1,7 @@
 import asyncio
 import base64
 import json
+import logging
 import secrets
 import time
 import uuid
@@ -14,6 +15,8 @@ from .journal import Journal
 from .operations import Operations
 
 OUTPUT_LIMIT = 8 * 1024 * 1024
+
+log = logging.getLogger(__name__)
 
 
 @dataclass
@@ -101,7 +104,7 @@ class Engine:
             self.session_id = result["session_id"]
             self.peer_id = credentials["peer_id"]
             self.state = "connecting"
-            self.event_task = asyncio.create_task(self._events())
+            self.event_task = asyncio.create_task(self._events_loop())
             self.journal.audit("connect_requested", {"peer_id": self.peer_id, "session_id": self.session_id, "elevate": elevate,
                                                      "config_source": self.snapshot["config_source"],
                                                      "credential_source": self.snapshot["credential_source"]})
@@ -133,7 +136,7 @@ class Engine:
             raise ToolError("session_closed")
         return {"session_id": session_id, "peer_id": self.peer_id, "state": self.state,
                 "terminal_id": 1, "active_command_id": self.active.row["command_id"] if self.active else self.operations.active.row["command_id"] if self.operations.active else None,
-                "policy": "confirm_writes" if self.config.allow_writes else "readonly",
+                "policy": "auto_approve" if self.config.auto_approve else ("confirm_writes" if self.config.allow_writes else "readonly"),
                 "optional_features":{"downloads_enabled":bool(self.config.downloads.get('enabled')),
                                      "intel_enabled":bool(self.config.intel.get('enabled'))},
                 "capabilities": ["terminal", "powershell", "files", "diagnostics", "operation_journal", "scripts", "trusted_downloads"],
@@ -187,6 +190,20 @@ class Engine:
                 command.timer.cancel()
             command.done.set()
             self.active = None
+
+    async def _events_loop(self):
+        # A malformed event must not kill the loop: without a consumer the
+        # bridge queue fills up and the session degrades into RPC timeouts.
+        dropped = 0
+        while True:
+            try:
+                await self._events()
+            except asyncio.CancelledError:
+                raise
+            except Exception:
+                dropped += 1
+                if dropped == 1 or dropped % 100 == 0:
+                    log.warning("bridge event loop dropped an unhandled event (total %d)", dropped, exc_info=True)
 
     async def _events(self):
         while True:
@@ -278,13 +295,17 @@ class Engine:
             if not trusted and not self.config.allow_writes:
                 self.journal.audit("readonly_rejected", {"session_id": session_id, "operation_id": operation_id})
                 raise ToolError("readonly_policy")
+            auto = not trusted and self.config.auto_approve
             script = DIAGNOSTICS.get(command, command)
             if len(script.encode("utf-8")) > 64 * 1024:
                 raise ToolError("command_too_large")
-            row = self.journal.create(operation_id, request, "submitting" if trusted else "pending_approval")
+            row = self.journal.create(operation_id, request, "submitting" if (trusted or auto) else "pending_approval")
             running = Running(row, script)
             self.active = running
-            if trusted:
+            if auto:
+                self.journal.audit("approved", {"session_id": session_id, "command_id": row["command_id"],
+                                                "digest": row["digest"], "source": "auto_approve"})
+            if trusted or auto:
                 await self._dispatch(running)
         return await self.get_command_output(session_id, running.row["command_id"], 0, 32768, wait_timeout_s)
 
@@ -405,7 +426,7 @@ class Engine:
 
     def web_snapshot(self):
         result = {"state": self.state, "peer_id": self.peer_id, "session_id": self.session_id,
-                  "policy": "confirm_writes" if self.config.allow_writes else "readonly", "snapshot": self.snapshot}
+                  "policy": "auto_approve" if self.config.auto_approve else ("confirm_writes" if self.config.allow_writes else "readonly"), "snapshot": self.snapshot}
         if self.active:
             row = self.active.row
             result["command"] = {"command_id": row["command_id"], "state": row["state"], "digest": row["digest"],

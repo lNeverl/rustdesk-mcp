@@ -11,7 +11,8 @@ param(
     [string]$AdminUsername = '',
     [Security.SecureString]$AdminPassword,
     [string]$BridgeExe = '',
-    [switch]$AllowWrites
+    [switch]$AllowWrites,
+    [switch]$AutoApprove
 )
 $ErrorActionPreference = 'Stop'
 if (!$BridgeExe) {
@@ -73,7 +74,8 @@ if ($AdminPeerId) {
     $config.admin_profiles = $adminProfiles
 }
 $config.bridge_exe = [IO.Path]::GetFullPath($BridgeExe)
-$config.allow_writes = [bool]$AllowWrites
+$config.allow_writes = [bool]($AllowWrites -or $AutoApprove)
+$config.auto_approve = [bool]$AutoApprove
 if ($PeerId) {
     $config.profiles[$CredentialRef] = @{
         peer_id = ($PeerId -replace '\s', '')

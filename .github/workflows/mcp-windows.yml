@@ -4,18 +4,24 @@ on:
   workflow_dispatch:
   pull_request:
     paths:
-      - 'src/mcp_bridge/**'
-      - 'src/mcp_bridge_main.rs'
-      - 'src/client.rs'
-      - 'src/core_main.rs'
-      - 'src/lib.rs'
+      - 'src/**'
+      - 'libs/**'
       - 'Cargo.toml'
       - 'Cargo.lock'
+      - 'build.rs'
+      - '.cargo/**'
+      - 'vcpkg.json'
+      - 'res/vcpkg/**'
+      - '.gitmodules'
       - 'mcp/**'
       - '.github/workflows/mcp-windows.yml'
 
 permissions:
   contents: read
+
+concurrency:
+  group: mcp-windows-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   build:
@@ -34,6 +40,23 @@ jobs:
           submodules: recursive
       - name: Install uv in the ephemeral CI runner
         run: python -m pip install uv==0.11.11
+      - name: Cache isolated build tools (vcpkg/rustup/python helpers)
+        uses: actions/cache@6f8efc29b200d32929f49075959781ed54ec270c # v3
+        with:
+          path: |
+            build/mcp-tools/vcpkg/installed
+            build/mcp-tools/vcpkg-downloads
+            build/mcp-tools/rustup
+            build/mcp-tools/python
+            build/mcp-tools/uv-cache
+          key: mcp-tools-${{ hashFiles('mcp/scripts/bootstrap-build.ps1', 'res/vcpkg/**', 'mcp/server/uv.lock') }}
+          restore-keys: mcp-tools-
+      - name: Cache cargo registry
+        uses: actions/cache@6f8efc29b200d32929f49075959781ed54ec270c # v3
+        with:
+          path: build/c/registry
+          key: mcp-cargo-${{ hashFiles('Cargo.lock') }}
+          restore-keys: mcp-cargo-
       - name: Prepare isolated build tools
         run: |
           uv pip install --target build/mcp-tools/python libclang==18.1.1 cmake==4.4.4
@@ -44,6 +67,8 @@ jobs:
         run: ./mcp/scripts/build.ps1
       - name: Check ordinary feature-off library
         run: ./mcp/scripts/build.ps1 -FeatureOff
+      - name: Package delivery ZIP
+        run: ./mcp/scripts/package.ps1
       - name: Upload executable (no release publishing)
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:

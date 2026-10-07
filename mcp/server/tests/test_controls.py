@@ -44,6 +44,40 @@ class ControlsTest(unittest.IsolatedAsyncioTestCase):
             finally:
                 await web.close();engine.state='disconnected';await hub.close()
 
+    async def test_auto_approve_skips_human_approval(self):
+        with tempfile.TemporaryDirectory() as root:
+            hub=Hub(Config(Path('missing.exe'),Path(root),auto_approve=True))
+            engine=Engine(hub.config,hub.journal)
+            engine.session_id,engine.peer_id,engine.state='session','123','connected'
+            hub.sessions['session']=engine
+            executed=AsyncMock(return_value={'value':'中文😀'})
+            try:
+                self.assertTrue(hub.config.allow_writes)
+                result=await engine.operations.submit('session','auto-op','fixture',{'path':'owned'},executed,wait_timeout_s=0)
+                self.assertNotEqual(result['state'],'pending_approval')
+                completed=await engine.get_command_output('session',result['command_id'],wait_timeout_s=2)
+                self.assertEqual(completed['state'],'completed')
+                executed.assert_awaited_once()
+                audits=hub.journal.audit_history(limit=20)['items']
+                self.assertTrue(any(e['action']=='approved' and e['details'].get('source')=='auto_approve' for e in audits))
+            finally:
+                engine.state='disconnected';await hub.close()
+
+    async def test_auto_approve_admin_connect_skips_pending(self):
+        with tempfile.TemporaryDirectory() as root:
+            config=Config(Path('missing.exe'),Path(root),auto_approve=True,admin_profiles={'admin':{'peer_id':'123','username':'admin','password_dpapi':'protected'}})
+            hub=Hub(config)
+            try:
+                with patch.object(Engine,'connect',new_callable=AsyncMock,return_value={'state':'connected'}) as connect:
+                    result=await hub.connect('123',admin_credential_ref='admin',elevate=True)
+                    connect.assert_awaited_once()
+                    self.assertTrue(connect.call_args.kwargs['elevation_approved'])
+                    self.assertNotEqual(result.get('state'),'pending_approval')
+                    self.assertFalse(hub.pending)
+            finally:
+                for engine in hub.sessions.values():engine.state='disconnected'
+                await hub.close()
+
     async def test_admin_connect_requires_approval_and_capacity_blocks_execution(self):
         with tempfile.TemporaryDirectory() as root:
             config=Config(Path('missing.exe'),Path(root),allow_writes=True,admin_profiles={'admin':{'peer_id':'123','username':'admin','password_dpapi':'protected'}})

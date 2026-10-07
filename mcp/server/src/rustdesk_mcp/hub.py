@@ -39,11 +39,14 @@ class Hub:
                 admin = self.config.admin_profiles.get(admin_credential_ref)
                 if not admin or str(admin.get('peer_id','')).replace(' ','') != peer_id.replace(' ','') or not admin.get('password_dpapi'):
                     raise ToolError('credential_unavailable')
-                request = {'session_id':session_id,'kind':'administrator_connect','params':{k:v for k,v in args.items() if k!='owned_session_id'},
-                           'os_username':admin.get('username')}
-                row = self.journal.create('connect:'+session_id, request, 'pending_approval')
-                self.pending[session_id] = (engine,args,row)
-                return {'session_id':session_id,'command_id':row['command_id'],'state':'pending_approval','approval_required':True}
+                if not self.config.auto_approve:
+                    request = {'session_id':session_id,'kind':'administrator_connect','params':{k:v for k,v in args.items() if k!='owned_session_id'},
+                               'os_username':admin.get('username')}
+                    row = self.journal.create('connect:'+session_id, request, 'pending_approval')
+                    self.pending[session_id] = (engine,args,row)
+                    return {'session_id':session_id,'command_id':row['command_id'],'state':'pending_approval','approval_required':True}
+                self.journal.audit('administrator_approved',{'session_id':session_id,'source':'auto_approve'})
+                args['elevation_approved'] = True
             self.sessions[session_id] = engine
             engine.session_id, engine.peer_id, engine.state = session_id, peer_id, 'connecting'
         try:
@@ -125,7 +128,7 @@ class Hub:
         for sid,(_,args,row) in self.pending.items():
             sessions.append({'session_id':sid,'peer_id':args['peer_id'],'state':'pending_approval',
                 'command':{'command_id':row['command_id'],'state':row['state'],'digest':row['digest'],'request':json.loads(row['request'])}})
-        return {'sessions':sessions,'history':self.journal.history(limit=30),'policy':'confirm_writes' if self.config.allow_writes else 'readonly'}
+        return {'sessions':sessions,'history':self.journal.history(limit=30),'policy':'auto_approve' if self.config.auto_approve else ('confirm_writes' if self.config.allow_writes else 'readonly')}
 
     async def close(self):
         for task in self.tasks:

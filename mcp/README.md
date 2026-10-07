@@ -49,7 +49,8 @@ pwsh -NoProfile -File scripts/install.ps1 -Configure
 
 安装器生成 `client-config.json`。把其中 command/args 加入 MCP 客户端，先 connect，再使用返回的 session_id。
 默认只读。自由命令、写入、传输到本地、脚本/处置需开启写策略，随后逐次在本地页面审批。
-页面地址输出到 MCP stderr，stdout 只承载 MCP 协议。详细步骤见交付手册。
+页面地址写入 `%LOCALAPPDATA%/RustDeskMCP/approval-url.txt`（目录已限当前用户 ACL），stderr 只提示路径，stdout 只承载 MCP 协议。
+Agent 以 YOLO/全自动模式运行时，可用 `install.ps1 -AutoApprove`（或配置 `RUSTDESK_MCP_AUTO_APPROVE=1`）跳过人工审批。详细步骤见交付手册。
 
 ## 从源码生成
 

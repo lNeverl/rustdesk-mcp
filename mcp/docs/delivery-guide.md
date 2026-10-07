@@ -163,7 +163,7 @@ pwsh -NoProfile -File scripts/configure.ps1 -ConfigSource official -AdminPeerId 
 2. 用固定 get_system_info/list_processes/list_services/read_file 等只读工具诊断。
 3. 修改前读取文件及 sha256，write_file/edit_file 带该 expected_sha256。
 4. 提交时使用稳定唯一 operation_id，例如 repair-config-20261007-01。
-5. pending_approval 后打开 stderr 的本地页面，核对完整命令/内容/目录/来源哈希再批准。
+5. pending_approval 后打开 approval-url.txt 中的本地页面（见第 8 节），核对完整命令/内容/目录/来源哈希再批准。
 6. get_command_output 有限等待和分页；running 继续查询，查询超时不会停止操作。
 7. unknown 先核查远端，不能换 ID 自动重执行。相同 ID/参数重试返回原记录，改参数返回 conflict。
 8. cancel_command 关闭本项目终端，收到关闭回执才确认；之后新 connect。取消不回滚修改。
@@ -178,9 +178,13 @@ pwsh -NoProfile -File scripts/configure.ps1 -ConfigSource official -AdminPeerId 
 ## 8. Web 审批与监视
 
 监听 127.0.0.1 随机端口，URL fragment 带临时 token，页面读取后从地址中移除。
+含 token 的完整地址写入数据目录 `approval-url.txt`（目录已限当前用户 ACL），stderr 只提示该文件路径，不回显 token。
 多会话状态、审批全文、输出尾部/传输进度、拒绝、取消、断开、最近 30 项历史和输出分页。
 完整历史通过 list_commands，审计通过 list_audit_events。检查 Bearer/Host，写 API 额外检查 Origin。
 token 属于本机当前用户权限边界，不是防御同一 Windows 账户恶意程序的独立安全沙箱。
+
+Agent 以 YOLO/全自动模式运行时，设 `auto_approve`（见 configuration.md）可跳过人工审批：
+写操作与管理员连接自动批准并落审计，本页面转为纯监视/取消/断开用途。
 
 ## 9. 下载、便携 PS7 与清理
 

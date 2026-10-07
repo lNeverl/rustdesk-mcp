@@ -36,6 +36,11 @@ class Config:
     storage_budget_bytes: int = 512 * 1024 * 1024
     downloads: dict = field(default_factory=dict, repr=False)
     intel: dict = field(default_factory=dict, repr=False)
+    auto_approve: bool = False
+
+    def __post_init__(self):
+        if self.auto_approve:
+            self.allow_writes = True
 
     @classmethod
     def load(cls, path: Path | None, bridge_exe: Path | None):
@@ -48,11 +53,13 @@ class Config:
         if source not in {"profile", "official"}:
             raise ToolError("invalid_config_source")
         official_dir = Path(raw["official_config_dir"]).resolve() if raw.get("official_config_dir") else None
-        result = cls(executable.resolve(), root, bool(raw.get("allow_writes", False)),
+        auto = (bool(raw.get("auto_approve", False)) or
+                os.environ.get("RUSTDESK_MCP_AUTO_APPROVE", "").strip().lower() in {"1", "true", "yes", "on"})
+        result = cls(executable.resolve(), root, bool(raw.get("allow_writes", False)) or auto,
                      raw.get("profiles", {}), raw.get("admin_profiles", {}), source, official_dir,
                      raw.get("remote_roots",[]),int(raw.get("max_sessions",4)),
                      int(raw.get("max_transfer_bytes",512*1024*1024)),int(raw.get("storage_budget_bytes",512*1024*1024)),
-                     raw.get("downloads",{}),raw.get("intel",{}))
+                     raw.get("downloads",{}),raw.get("intel",{}),auto)
         if not 1 <= result.max_sessions <= 16 or result.max_transfer_bytes < 1 or result.storage_budget_bytes < 1024*1024:
             raise ToolError("invalid_config")
         return result

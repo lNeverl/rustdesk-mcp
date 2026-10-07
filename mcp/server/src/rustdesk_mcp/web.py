@@ -106,7 +106,11 @@ class ConfirmationWeb:
                         raise ValueError()
                     action = {'/api/decision':owner.engine.decide,'/api/cancel':owner.engine.cancel_command,'/api/disconnect':owner.engine.disconnect}[self.path]
                     future = asyncio.run_coroutine_threadsafe(action(**body), owner.loop)
-                    result = future.result(timeout=15)
+                    try:
+                        result = future.result(timeout=15)
+                    except Exception:
+                        future.cancel()
+                        raise
                     self.respond(200, result)
                 except ToolError as exc:
                     self.respond(409, {"error": exc.code})
@@ -120,7 +124,12 @@ class ConfirmationWeb:
         self.origin = f"http://{self.authority}"
         self.thread = threading.Thread(target=self.server.serve_forever, daemon=True)
         self.thread.start()
-        print(f"RustDesk MCP 本地确认页：{self.origin}/#{self.token}", file=sys.stderr)
+        try:
+            entry_file = engine.config.data_dir / "approval-url.txt"
+            entry_file.write_text(f"{self.origin}/#{self.token}\n", encoding="utf-8")
+            print(f"RustDesk MCP 本地确认页地址（含 token，勿共享）已写入：{entry_file}", file=sys.stderr)
+        except OSError:
+            print(f"RustDesk MCP 本地确认页：{self.origin}/#{self.token}", file=sys.stderr)
 
     async def close(self):
         await asyncio.to_thread(self.server.shutdown)

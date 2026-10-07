@@ -6,7 +6,7 @@
 ## 共用契约
 
 - 不向 MCP 传密码；仅用 credential_ref/admin_credential_ref。本地配置 DPAPI，官方密码 hash 在 EXE 内使用。
-- R：固定只读查询；W：启用 allow_writes 后逐次在本地 Web 审批。annotations 只是客户端提示，服务仍强制检查。
+- R：固定只读查询；W：启用 allow_writes 后逐次在本地 Web 审批（auto_approve 模式下自动批准）。annotations 只是客户端提示，服务仍强制检查。
 - connect 返回 session_id；管理员 connect 先返回审批记录，批准后查询 status/get_command_output。
 - W 工具要求稳定 operation_id（1–128 字符）。同 ID/请求返回旧记录；改参数 conflict；unknown 不重放。
 - 一个会话一次一个操作，busy 不排队。只读查询也是操作，可能超过默认 10 秒等待而返回 running。

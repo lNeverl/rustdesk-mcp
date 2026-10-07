@@ -48,6 +48,29 @@ pwsh -NoProfile -File mcp/scripts/dev.ps1 rustdesk-mcp
 若官方版使用其他目录，本地配置脚本可传 `-OfficialConfigDir '<config directory>'`；
 这不是允许模型任意指定配置路径的工具参数。
 
+## 全自动模式（auto_approve）
+
+默认策略是只读；开启写策略后，自由命令、写入、传输、脚本/处置和显式管理员连接
+仍需在本地确认页逐次人工批准。Agent 以 YOLO/全自动模式运行时，可让 MCP 同样全自动：
+
+```powershell
+# 安装交付包时一次性配置：写策略 + 自动批准，client-config.json 注入环境变量。
+pwsh -NoProfile -File scripts/install.ps1 -Configure -AutoApprove
+
+# 或事后改写本地配置：
+pwsh -NoProfile -File mcp/scripts/configure.ps1 -ConfigSource official -AutoApprove
+```
+
+生效规则：
+
+- config.json 的 `auto_approve: true`，或进程环境变量 `RUSTDESK_MCP_AUTO_APPROVE=1`
+  （`true/yes/on` 亦可），任一为真即启用；环境变量可写在 MCP 客户端注册的 `env` 字段里，
+  与具体 Agent 的权限模式绑定。
+- 启用后写策略视为开启，审批环节自动通过并记录 `source: auto_approve` 审计；
+  本地 Web 页面仍提供状态监视、输出查看、取消和断开。
+- 此模式下任何能调用本 MCP 的客户端都对远端拥有完整操作能力，
+  只应在本机可信、Agent 已处于全自动授权时使用；关闭即恢复人工审批。
+
 ## 读取哪些内容
 
 - `RustDesk2.toml`：custom-rendezvous-server、key、socks、relay-server、
@@ -80,5 +103,5 @@ pwsh -NoProfile -File mcp/scripts/dev.ps1 rustdesk-mcp
 - 跨机器复制的密文、使用其他用户/服务账户的配置未保证可解密，失败不尝试绕过。
 - 官方配置存在访问 PIN 时返回 official_application_locked；没有无头解锁流程，
   即使官方 UI 已解锁也不借用其解锁状态。
-- 本版只支持数字 peer ID；默认最多 4 个独立连接，每个拥有一个非持久终端。显式管理员连接需要本地单独批准和有效 OS 凭据。
+- 本版只支持数字 peer ID；默认最多 4 个独立连接，每个拥有一个非持久终端。显式管理员连接需要本地单独批准（auto_approve 模式下自动批准）和有效 OS 凭据。
 - 不监视配置文件变化。下一次连接重新读取；现有连接采用连接时的快照。

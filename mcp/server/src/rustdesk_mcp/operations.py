@@ -63,7 +63,8 @@ class Operations:
                 raise ToolError("busy")
             if not readonly and not engine.config.allow_writes:
                 raise ToolError("readonly_policy")
-            row = engine.journal.create(operation_id, request, "submitting" if readonly else "pending_approval")
+            auto = not readonly and engine.config.auto_approve
+            row = engine.journal.create(operation_id, request, "submitting" if (readonly or auto) else "pending_approval")
             binding = {"request":request,"review":review or params,"peer_id":engine.peer_id,
                        "identity":engine.snapshot.get("system_info",{}).get("identity"),
                        "sid":engine.snapshot.get("system_info",{}).get("sid")}
@@ -72,7 +73,10 @@ class Operations:
             self.active.on_finish = on_finish
             self.active.metadata = {"operation_kind":kind,"review":binding,"approval_digest":digest}
             self._persist()
-            if readonly:
+            if auto:
+                engine.journal.audit("approved", {"command_id":row["command_id"],"session_id":engine.session_id,
+                                                  "digest":digest,"source":"auto_approve"})
+            if readonly or auto:
                 self.start()
         return await engine.get_command_output(session_id,row["command_id"],wait_timeout_s=wait_timeout_s)
 

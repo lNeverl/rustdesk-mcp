@@ -59,3 +59,4 @@ flutter/web/
 # libdrmtap is cloned at build time by build.py (not a submodule)
 /third_party/libdrmtap/
 mcp/测试机及自建服务器信息.txt
+.kimi_tmp/

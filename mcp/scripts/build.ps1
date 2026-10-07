@@ -25,9 +25,10 @@ $gitConfig | Set-Content -LiteralPath $gitConfigPath -Encoding utf8
 $env:GIT_CONFIG_GLOBAL = $gitConfigPath
 $env:GIT_TERMINAL_PROMPT = '0'
 $env:GCM_INTERACTIVE = 'never'
-$revision = (git -C $workspace rev-parse HEAD).Trim()
-git -C $workspace diff --quiet HEAD
-if ($LASTEXITCODE) { $revision += '-dirty' }
+$revision = git -C $workspace rev-parse HEAD
+if ($LASTEXITCODE -or !$revision) { throw 'git revision unavailable' }
+$revision = $revision.Trim()
+if (git -C $workspace status --porcelain) { $revision += '-dirty' }
 $env:RUSTDESK_MCP_REVISION = $revision
 New-Item -ItemType Directory -Force -Path $env:TEMP | Out-Null
 $vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio/Installer/vswhere.exe'

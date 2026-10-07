@@ -26,7 +26,7 @@ def make_server(config: Config) -> FastMCP:
             await engine.close()
 
     server = FastMCP("RustDesk MCP", lifespan=lifespan,
-                     instructions="Remote Windows tools. Default readonly. Arbitrary PowerShell requires local human approval. Use stable operation_id; never retry an unknown command with a new ID.")
+                     instructions="Remote Windows tools. Default readonly. Arbitrary PowerShell requires local human approval unless the operator enabled auto_approve (fully automatic mode). Use stable operation_id; never retry an unknown command with a new ID.")
     read = ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=False)
 
     def engine(ctx: Context) -> Hub:
@@ -36,7 +36,7 @@ def make_server(config: Config) -> FastMCP:
     async def connect(ctx: Context, peer_id: str, credential_ref: str | None = None,
                       admin_credential_ref: str | None = None, elevate: bool = False,
                       config_source: Literal["profile", "official"] | None = None) -> dict[str, Any]:
-        """Connect a remote Windows peer with an independent bridge process. official reads official settings without writing back; credential_ref can override its password. profile uses private credentials. Never pass passwords. Elevation requires an admin_credential_ref and local human approval before connecting."""
+        """Connect a remote Windows peer with an independent bridge process. official reads official settings without writing back; credential_ref can override its password. profile uses private credentials. Never pass passwords. Elevation requires an admin_credential_ref and local human approval (skipped only in auto_approve mode) before connecting."""
         return await engine(ctx).connect(peer_id, credential_ref, admin_credential_ref, elevate, config_source)
 
     @server.tool(annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=False, idempotentHint=True, openWorldHint=False))
@@ -54,7 +54,7 @@ def make_server(config: Config) -> FastMCP:
                            command: str, cwd: str | None = None,
                            wait_timeout_s: Annotated[float, Field(ge=0, le=30)] = 10,
                            execution_timeout_s: Annotated[float, Field(ge=1, le=3600)] = 300) -> dict[str, Any]:
-        """Execute PowerShell in the persistent terminal. Stable operation_id deduplicates retries. Readonly accepts diagnostic:system_info/processes/services/network/disk/unicode with default cwd only. Free commands or custom cwd require enabled write policy and local approval. PTY output is combined; busy rejects concurrent commands."""
+        """Execute PowerShell in the persistent terminal. Stable operation_id deduplicates retries. Readonly accepts diagnostic:system_info/processes/services/network/disk/unicode with default cwd only. Free commands or custom cwd require enabled write policy and local approval (auto-approved when auto_approve is on). PTY output is combined; busy rejects concurrent commands."""
         return await engine(ctx).session(session_id).exec_command(session_id, operation_id, command, cwd, wait_timeout_s, execution_timeout_s)
 
     @server.tool(annotations=read)

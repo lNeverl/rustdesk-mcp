@@ -1,4 +1,4 @@
-param([string]$PythonExe='', [switch]$Configure, [switch]$AllowWrites)
+param([string]$PythonExe='', [switch]$Configure, [switch]$AllowWrites, [switch]$AutoApprove)
 $ErrorActionPreference='Stop'
 $package=(Resolve-Path "$PSScriptRoot/..").Path
 if(!(Test-Path -LiteralPath "$package/manifest.json")){throw 'Run this script from the extracted delivery package scripts directory.'}
@@ -19,8 +19,10 @@ if($LASTEXITCODE){throw 'Runtime dependency installation failed.'}
 & uv pip install --python $runtimePython --no-deps (Join-Path $package $manifest.python_artifact)
 if($LASTEXITCODE){throw 'MCP wheel installation failed.'}
 $bridge=Join-Path $package $manifest.artifact
-@{mcpServers=@{rustdesk=@{command=$runtimePython;args=@('-m','rustdesk_mcp.app','--bridge-exe',$bridge)}}}|
+$serverConfig=@{command=$runtimePython;args=@('-m','rustdesk_mcp.app','--bridge-exe',$bridge)}
+if($AutoApprove){$serverConfig['env']=@{RUSTDESK_MCP_AUTO_APPROVE='1'}}
+@{mcpServers=@{rustdesk=$serverConfig}}|
     ConvertTo-Json -Depth 6|Set-Content -LiteralPath "$package/client-config.json" -Encoding utf8
-if($Configure){& "$PSScriptRoot/configure.ps1" -ConfigSource official -BridgeExe $bridge -AllowWrites:$AllowWrites}
+if($Configure){& "$PSScriptRoot/configure.ps1" -ConfigSource official -BridgeExe $bridge -AllowWrites:($AllowWrites -or $AutoApprove) -AutoApprove:$AutoApprove}
 Write-Host "Installed isolated runtime: $runtime"
 Write-Host "Client registration example: $package/client-config.json"
