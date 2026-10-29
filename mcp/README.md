@@ -7,6 +7,7 @@
 ## 交付入口
 
 - [交付与使用手册](docs/delivery-guide.md)：原理、功能、安装、MCP/EXE 用法、编译、升级与故障排查。
+- [编译部署流程](docs/deployment-workflow.md)：固定目录、Kimi 自动部署、更新验收与回滚。
 - [API 参考](docs/api-reference.md) / [完整 schema](docs/tools-schema.json)：全部 40 个接口及参数。
 - [验证记录](docs/validation-record.md)：已实测和未实测条件。
 - [开发进度](docs/development-plan.md)：额度中断后从这里继续。

@@ -4,7 +4,7 @@
   "tools": [
     {
       "name": "connect",
-      "description": "Connect a remote Windows peer with an independent bridge process. official reads official settings without writing back; credential_ref can override its password. profile uses private credentials. Never pass passwords. Elevation requires an admin_credential_ref and local human approval before connecting.",
+      "description": "Connect a remote Windows peer with an independent bridge process. official reads official settings without writing back; credential_ref can override its password. profile uses private credentials. Never pass passwords. Default terminal uses the logged-in user's token even with an elevated installed RustDesk service. For privileged work reconnect with elevate=true and an admin_credential_ref from status/connect; this is a Windows administrator credential, distinct from the RustDesk password. Installed service admin login does not require per-command RunAs/UAC; verify system_info.administrator. Local human approval is skipped in auto_approve mode.",
       "inputSchema": {
         "properties": {
           "peer_id": {
@@ -104,7 +104,7 @@
     },
     {
       "name": "status",
-      "description": "Read cached connection, identity, shell, cwd, policy and active command state. Does not insert a remote probe.",
+      "description": "Read cached connection, identity, shell, cwd, policy, active command state and available admin_credential_refs for this peer (names only). Does not insert a remote probe.",
       "inputSchema": {
         "properties": {
           "session_id": {
@@ -132,7 +132,7 @@
     },
     {
       "name": "exec_command",
-      "description": "Execute PowerShell in the persistent terminal. Stable operation_id deduplicates retries. Readonly accepts diagnostic:system_info/processes/services/network/disk/unicode with default cwd only. Free commands or custom cwd require enabled write policy and local approval. PTY output is combined; busy rejects concurrent commands.",
+      "description": "Execute PowerShell in the persistent terminal. Stable operation_id deduplicates retries. Readonly accepts diagnostic:system_info/processes/services/network/disk/unicode with default cwd only. Free commands or custom cwd require enabled write policy and local approval (auto-approved when auto_approve is on). PTY output is combined; busy rejects concurrent commands. command is PowerShell source: backslash does not escape quotes. Avoid nested cmd /c or powershell -Command; use exec_script with typed parameters. Native stdout/stderr defaults to UTF-8; use native_output_encoding=gbk for legacy Chinese tools, or request UTF-8 from the tool (7z -sccUTF-8, python -X utf8). The encoding applies to all native commands in this call; it cannot repair already garbled text.",
       "inputSchema": {
         "properties": {
           "session_id": {
@@ -174,6 +174,15 @@
             "minimum": 1,
             "title": "Execution Timeout S",
             "type": "number"
+          },
+          "native_output_encoding": {
+            "default": "utf8",
+            "enum": [
+              "utf8",
+              "gbk"
+            ],
+            "title": "Native Output Encoding",
+            "type": "string"
           }
         },
         "required": [
@@ -581,7 +590,7 @@
     },
     {
       "name": "write_file",
-      "description": "Approved text create/overwrite/append. Create is exclusive; existing files require expected_sha256. Locks during hash check/write, preserves encoding/BOM, retains a backup. Writes are not power-loss atomic. Larger/binary payloads use upload_file.",
+      "description": "Approved text create/overwrite/append. Create is exclusive; existing files require expected_sha256. Locks during hash check/write, preserves encoding/BOM, retains a backup. New .ps1 files with default encoding=preserve use UTF-8 BOM for Windows PowerShell 5.1; explicit utf8 creates without BOM. Writes are not power-loss atomic. Larger/binary payloads use upload_file. Prefer exec_script for execution with typed parameters.",
       "inputSchema": {
         "properties": {
           "session_id": {
@@ -1900,7 +1909,7 @@
     },
     {
       "name": "download_url",
-      "description": "Opt-in trusted manifest download: HTTPS source, allowlisted redirects, fixed SHA256, bounded local staging, official upload and exclusive remote create. Arbitrary URLs/untrusted hashes are not accepted. Download progress can have unknown total.",
+      "description": "Trusted manifest download: HTTPS source, allowlisted redirects, fixed SHA256, bounded local staging, official upload and exclusive remote create. Enabled by default; downloads.enabled=false disables it. Write policy still applies. Arbitrary URLs/untrusted hashes are not accepted. Download progress can have unknown total.",
       "inputSchema": {
         "properties": {
           "session_id": {
@@ -1952,7 +1961,7 @@
     },
     {
       "name": "deploy_pwsh_portable",
-      "description": "Opt-in pinned official PowerShell ZIP deployment into a new owned directory, hash-check before bounded safe extraction and version probe. Windows x64 only. No MSI, PATH, registry changes or default shell switch; no unchecked cache reuse.",
+      "description": "Deploy pinned official PowerShell ZIP into a new owned directory, hash-check before bounded safe extraction and version probe. Enabled by default; downloads.enabled=false disables it. Write policy still applies. Prefer this when pwsh is absent. Windows x64 only. No MSI, PATH, registry changes or default shell switch; execute via exec_script(portable_deployment_command_id=<completed command_id>). No unchecked cache reuse.",
       "inputSchema": {
         "properties": {
           "session_id": {

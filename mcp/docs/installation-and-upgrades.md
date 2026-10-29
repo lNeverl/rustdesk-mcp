@@ -34,6 +34,10 @@ MCP 自己的连接和非持久终端不接管桌面/普通终端会话。
 
 ## 升级
 
+Kimi 部署优先使用 [编译部署流程](deployment-workflow.md) 中的 `deploy-kimi.ps1`：
+新建 `%LOCALAPPDATA%/RustDeskMCP/releases/` 目录，验收后备份并切换客户端 command/args。
+CLI 的 `--bridge-exe` 优先于 config.json，无需在每次部署时改写持久配置。
+
 1. 新版本解压到新目录，保留旧目录，不覆盖正在运行的 exe。
 2. 停止 MCP，等待其关闭拥有的终端；确认没有正在等待批准或执行的操作。
 3. 备份 `%LOCALAPPDATA%/RustDeskMCP/` 的 config.json 和操作数据库。

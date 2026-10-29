@@ -35,9 +35,15 @@ def encoded_script(script: str) -> str:
     return base64.b64encode(script.encode("utf-8")).decode("ascii")
 
 
-def wrapper(script: str, nonce: str, cwd: str | None = None) -> str:
+def wrapper(script: str, nonce: str, cwd: str | None = None, native_output_encoding: str = "utf8") -> str:
     if len(script.encode("utf-8")) > 64 * 1024:
         raise ToolError("command_too_large")
+    if native_output_encoding not in {"utf8", "gbk"}:
+        raise ToolError("unsupported_native_output_encoding")
+    native_setup = native_reset = ""
+    if native_output_encoding == "gbk":
+        native_setup = "[Console]::OutputEncoding = [Text.Encoding]::GetEncoding(936);"
+        native_reset = "[Console]::OutputEncoding = New-Object Text.UTF8Encoding($false); $OutputEncoding = [Console]::OutputEncoding;"
     location = ""
     if cwd is not None:
         encoded_cwd = encoded_script(cwd)
@@ -46,6 +52,7 @@ def wrapper(script: str, nonce: str, cwd: str | None = None) -> str:
     payload = f"""
 [Console]::OutputEncoding = New-Object Text.UTF8Encoding($false)
 $OutputEncoding = [Console]::OutputEncoding
+$env:UV_PYTHON_DOWNLOADS = 'never'
 [Console]::WriteLine('')
 [Console]::WriteLine('__RDMCP_{nonce}_BEGIN__')
 $__rd_failed = $false
@@ -61,6 +68,7 @@ function __rd_frame([string]$kind, [string]$value) {{
 }}
 try {{
   {location}
+  {native_setup}
   . ([ScriptBlock]::Create([Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('{encoded_script(script)}')))) 2>&1 |
     ForEach-Object {{
       if ($_ -is [Management.Automation.ErrorRecord] -and $_.FullyQualifiedErrorId -notlike 'NativeCommandError*') {{ $script:__rd_failed = $true }}
@@ -69,6 +77,7 @@ try {{
   $__rd_ok = $?
   if (-not $__rd_ok) {{ $__rd_failed = $true }}
 }} catch {{ $__rd_failed = $true; __rd_frame 'DATA' ([string]$_ + "`n") }}
+{native_reset}
 $__rd_native = $global:LASTEXITCODE
 $__rd_result = @{{powershell_success=(-not $__rd_failed);native_exit_code=$__rd_native;cwd=$PWD.Path;shell_version=$PSVersionTable.PSVersion.ToString()}} | ConvertTo-Json -Compress
 __rd_frame 'META' $__rd_result

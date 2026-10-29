@@ -16,7 +16,7 @@ $manifest=Get-Content -LiteralPath "$destination/manifest.json" -Raw|ConvertFrom
 $manifest.python_sha256=(Get-FileHash -LiteralPath (Join-Path $destination $manifest.python_artifact) -Algorithm SHA256).Hash
 $manifest|ConvertTo-Json -Depth 5|Set-Content -LiteralPath "$destination/manifest.json" -Encoding utf8
 New-Item -ItemType Directory -Force -Path "$destination/scripts","$destination/docs"|Out-Null
-Copy-Item -LiteralPath "$PSScriptRoot/install.ps1","$PSScriptRoot/run.ps1","$PSScriptRoot/configure.ps1","$PSScriptRoot/smoke.py","$PSScriptRoot/check_bridge.py" -Destination "$destination/scripts"
+Copy-Item -LiteralPath "$PSScriptRoot/install.ps1","$PSScriptRoot/run.ps1","$PSScriptRoot/configure.ps1","$PSScriptRoot/smoke.py","$PSScriptRoot/check_bridge.py","$PSScriptRoot/deploy-kimi.ps1" -Destination "$destination/scripts"
 Copy-Item -Path "$workspace/mcp/docs/*.md" -Destination "$destination/docs"
 Copy-Item -LiteralPath "$workspace/mcp/docs/tools-schema.json" -Destination "$destination/docs"
 Copy-Item -LiteralPath "$workspace/mcp/README.md","$workspace/LICENCE","$workspace/mcp/server/pyproject.toml","$workspace/mcp/server/uv.lock" -Destination $destination

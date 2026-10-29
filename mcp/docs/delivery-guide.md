@@ -123,7 +123,8 @@ pwsh -NoProfile -File scripts/install.ps1 -PythonExe C:/existing/python.exe -Con
 
 把 rustdesk 项合入已有客户端配置，保留其他 MCP。客户端的外层容器可能不同，command/args 使用生成的绝对路径。
 Kimi 源码确认支持 stdio command/args，省略 transport 会推断 stdio；添加界面填这两项即可。
-本轮没有更改用户现有 Kimi 全局配置。实际界面的 Agent 调用仍需客户端侧验收。
+Kimi 可用 `scripts/deploy-kimi.ps1` 自动部署到独立目录、验收并备份/更新配置，详见 [编译部署流程](deployment-workflow.md)。
+2026-10-07 已更新本机 `.kimi-code/mcp.json`；实际启动命令的 stdio 验收通过，客户端需完全退出并重启后加载。
 手工启动 `pwsh -NoProfile -File scripts/run.ps1` 后等待 MCP 输入属于正常现象，不是 GUI。
 优先让客户端直接启动 runtime Python，避免 shell 额外输出污染协议。
 
@@ -153,7 +154,9 @@ pwsh -NoProfile -File scripts/configure.ps1 -ConfigSource official -AdminPeerId 
   -BridgeExe C:/Tools/RustDeskMCP/0.2.0/rustdesk-mcp-bridge.exe
 ```
 
-交互提示 OS 密码。connect 传 elevate=true、admin_credential_ref=admin-office，先返回 pending_approval。
+交互提示 OS 密码。connect 传 elevate=true、admin_credential_ref=admin-office，先返回 pending_approval；
+配置时用 -AutoApprove 代替 -AllowWrites 可跳过 MCP 审批。安装服务的管理员终端登录不需要逐次 RunAs/UAC；
+默认普通终端仍使用当前登录用户的 token，详见 [配置说明](configuration.md#管理员终端与-uac)。
 在本地页面批准后才发送管理员认证；权限以实际 SID/administrator 为准，不绕过 UAC/远端策略。
 管理员终端不意味着文件通道具备同等权限，文件访问另行验证。
 
@@ -179,6 +182,8 @@ pwsh -NoProfile -File scripts/configure.ps1 -ConfigSource official -AdminPeerId 
 
 监听 127.0.0.1 随机端口，URL fragment 带临时 token，页面读取后从地址中移除。
 含 token 的完整地址写入数据目录 `approval-url.txt`（目录已限当前用户 ACL），stderr 只提示该文件路径，不回显 token。
+写入失败返回 `approval_url_unavailable` 并停止启动，释放监听端口和运行目录锁。
+`decision_unknown` 时先查询原 command_id；HTTP 超时后的协程取消无法撤回已经提交到远端的操作。
 多会话状态、审批全文、输出尾部/传输进度、拒绝、取消、断开、最近 30 项历史和输出分页。
 完整历史通过 list_commands，审计通过 list_audit_events。检查 Bearer/Host，写 API 额外检查 Origin。
 token 属于本机当前用户权限边界，不是防御同一 Windows 账户恶意程序的独立安全沙箱。
@@ -188,7 +193,7 @@ Agent 以 YOLO/全自动模式运行时，设 `auto_approve`（见 configuration
 
 ## 9. 下载、便携 PS7 与清理
 
-downloads.enabled 默认 false。download_url 仅接受受信 manifest 的 asset_ref、HTTPS 来源、固定 SHA256、
+downloads.enabled 默认 true；显式 false 可关闭。download_url 仅接受受信 manifest 的 asset_ref、HTTPS 来源、固定 SHA256、
 允许的重定向域名和大小上限。可配置镜像，预期哈希必须来自受信来源。
 便携部署固定 7.4.20/x64，哈希来自[微软官方 release](https://github.com/PowerShell/PowerShell/releases/tag/v7.4.20)。
 不使用 MSI、不改 PATH/注册表，不自动切默认 shell。

@@ -91,9 +91,15 @@ class Hub:
             try:
                 result = await engine.connect(**args,elevation_approved=True)
                 self.journal.update(command_id,'completed',json.dumps(result,ensure_ascii=False),{})
-            except (ToolError, OSError) as exc:
-                engine.state = 'failed'
-                self.journal.update(command_id,'failed','',{'error':{'code':getattr(exc,'code','connect_failed')}})
+            except (Exception, asyncio.CancelledError) as exc:
+                try:
+                    await engine.close()
+                finally:
+                    engine.state = 'failed'
+                    self.journal.update(command_id,'unknown' if isinstance(exc,asyncio.CancelledError) else 'failed','',
+                        {'error':{'code':getattr(exc,'code','connect_failed')}})
+                if isinstance(exc,asyncio.CancelledError):
+                    raise
         self.journal.update(command_id,'running','',{})
         task = asyncio.create_task(run())
         self.tasks.add(task)

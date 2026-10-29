@@ -1,4 +1,5 @@
 import asyncio
+import io
 import json
 import tempfile
 import unittest
@@ -7,6 +8,7 @@ import urllib.request
 from pathlib import Path
 from unittest.mock import AsyncMock, patch
 
+from rustdesk_mcp.app import make_server
 from rustdesk_mcp.config import Config
 from rustdesk_mcp.engine import Engine
 from rustdesk_mcp.errors import ToolError
@@ -15,6 +17,36 @@ from rustdesk_mcp.web import ConfirmationWeb
 
 
 class ControlsTest(unittest.IsolatedAsyncioTestCase):
+    async def test_approval_url_write_failure_does_not_expose_token(self):
+        with tempfile.TemporaryDirectory() as root:
+            config = Config(Path('missing.exe'), Path(root))
+            server = make_server(config)
+            stderr = io.StringIO()
+            with patch.object(Path, 'write_text', side_effect=OSError('denied')), patch('sys.stderr', stderr):
+                with self.assertRaisesRegex(ToolError, 'approval_url_unavailable'):
+                    async with server.settings.lifespan(server):
+                        pass
+            self.assertNotIn('/#', stderr.getvalue())
+            await Hub(config).close()
+
+    async def test_failed_approved_connect_closes_bridge(self):
+        with tempfile.TemporaryDirectory() as root:
+            config = Config(Path('missing.exe'), Path(root), allow_writes=True,
+                admin_profiles={'admin': {'peer_id': '123', 'username': 'admin', 'password_dpapi': 'protected'}})
+            hub = Hub(config)
+            try:
+                pending = await hub.connect('123', admin_credential_ref='admin', elevate=True)
+                command = hub.web_snapshot()['sessions'][0]['command']
+                with patch.object(Engine, 'connect', side_effect=ToolError('submission_unknown')), patch.object(Engine, 'close', new_callable=AsyncMock) as close:
+                    await hub.decide(pending['session_id'], command['command_id'], command['digest'], True)
+                    await asyncio.gather(*hub.tasks)
+                    close.assert_awaited_once()
+                self.assertEqual((await hub.get_command_output(pending['session_id'], command['command_id']))['state'], 'failed')
+            finally:
+                for engine in hub.sessions.values():
+                    engine.state = 'disconnected'
+                await hub.close()
+
     async def test_http_approval_origin_digest_and_operation_retry(self):
         with tempfile.TemporaryDirectory() as root:
             hub=Hub(Config(Path('missing.exe'),Path(root),allow_writes=True))

@@ -42,7 +42,7 @@ def register(server,engine):
         expected_sha256:Annotated[str|None,Field(pattern=r"^[0-9a-fA-F]{64}$")]=None,
         encoding:Literal["preserve","utf8","utf16le","utf16be","gb18030"]="preserve",
         newline:Literal["preserve","lf","crlf"]="preserve") -> dict[str,Any]:
-        """Approved text create/overwrite/append. Create is exclusive; existing files require expected_sha256. Locks during hash check/write, preserves encoding/BOM, retains a backup. Writes are not power-loss atomic. Larger/binary payloads use upload_file."""
+        """Approved text create/overwrite/append. Create is exclusive; existing files require expected_sha256. Locks during hash check/write, preserves encoding/BOM, retains a backup. New .ps1 files with default encoding=preserve use UTF-8 BOM for Windows PowerShell 5.1; explicit utf8 creates without BOM. Writes are not power-loss atomic. Larger/binary payloads use upload_file. Prefer exec_script for execution with typed parameters."""
         if mode != "create" and not expected_sha256:
             raise ToolError("expected_hash_required")
         return await catalog(ctx,session_id).call("write_file",{"remote_path":remote_path,"content":content,"mode":mode,

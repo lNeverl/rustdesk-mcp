@@ -137,7 +137,10 @@ class Engine:
         return {"session_id": session_id, "peer_id": self.peer_id, "state": self.state,
                 "terminal_id": 1, "active_command_id": self.active.row["command_id"] if self.active else self.operations.active.row["command_id"] if self.operations.active else None,
                 "policy": "auto_approve" if self.config.auto_approve else ("confirm_writes" if self.config.allow_writes else "readonly"),
-                "optional_features":{"downloads_enabled":bool(self.config.downloads.get('enabled')),
+                "admin_credential_refs": [ref for ref, profile in self.config.admin_profiles.items()
+                    if "".join(str(profile.get("peer_id", "")).split()) == self.peer_id
+                    and profile.get("username") and profile.get("password_dpapi")],
+                "optional_features":{"downloads_enabled":bool(self.config.downloads.get('enabled',True)),
                                      "intel_enabled":bool(self.config.intel.get('enabled'))},
                 "capabilities": ["terminal", "powershell", "files", "diagnostics", "operation_journal", "scripts", "trusted_downloads"],
                 **self.snapshot}
@@ -280,10 +283,14 @@ class Engine:
                 self.opened.set()
 
     async def exec_command(self, session_id: str, operation_id: str, command: str, cwd=None,
-                           wait_timeout_s=10, execution_timeout_s=300):
+                           wait_timeout_s=10, execution_timeout_s=300, native_output_encoding="utf8"):
         if not 1 <= len(operation_id) <= 128 or not 0 <= wait_timeout_s <= 30 or not 1 <= execution_timeout_s <= 3600:
             raise ToolError("invalid_params")
         request = {"session_id": session_id, "command": command, "cwd": cwd, "execution_timeout_s": execution_timeout_s}
+        if native_output_encoding not in {"utf8", "gbk"}:
+            raise ToolError("unsupported_native_output_encoding")
+        if native_output_encoding != "utf8":
+            request["native_output_encoding"] = native_output_encoding
         async with self.lock:
             existing, _, _ = self.journal.lookup(operation_id, request)
             if existing:
@@ -319,7 +326,7 @@ class Engine:
                                                   "sid": self.snapshot.get("system_info", {}).get("sid")})
         try:
             await self.bridge.rpc("terminal.write", session_id=self.session_id,
-                                  data=wrapper(command.script, command.nonce, request.get("cwd")))
+                                  data=wrapper(command.script, command.nonce, request.get("cwd"), request.get("native_output_encoding", "utf8")))
             if self.active is command:
                 command.row["state"] = "running"
                 self._persist()

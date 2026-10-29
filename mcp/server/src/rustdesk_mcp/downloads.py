@@ -12,7 +12,7 @@ from .errors import ToolError
 
 
 def asset(config,ref):
-    if not config.downloads.get('enabled'):
+    if not config.downloads.get('enabled',True):
         raise ToolError('downloads_disabled')
     builtins=json.loads((Path(__file__).parent/'assets.json').read_text('utf-8'))
     value=config.downloads.get('assets',{}).get(ref) or builtins.get(ref)

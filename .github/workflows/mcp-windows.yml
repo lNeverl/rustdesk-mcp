@@ -44,6 +44,7 @@ jobs:
         uses: actions/cache@6f8efc29b200d32929f49075959781ed54ec270c # v3
         with:
           path: |
+            build/c/bin
             build/mcp-tools/vcpkg/installed
             build/mcp-tools/vcpkg-downloads
             build/mcp-tools/rustup

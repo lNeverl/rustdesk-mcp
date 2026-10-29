@@ -161,7 +161,7 @@ try {
         }
         'prepare_stage' {
             $directory=$null
-            foreach($base in @($env:ProgramData,$env:TEMP)){
+            foreach($base in $(if($rd.roots.Count){$rd.roots}else{@($env:ProgramData,$env:TEMP)})){
                 $candidate=Guard (Join-Path $base ('RustDeskMCP\sessions\'+$rd.session_id+'\tmp\'+$rd.operation_tag))
                 if([IO.Directory]::Exists($candidate)){Fail 'staging_exists'}
                 try{[IO.Directory]::CreateDirectory($candidate)|Out-Null;$directory=$candidate;break}catch [UnauthorizedAccessException] {continue}
@@ -306,6 +306,9 @@ try {
                 if($rd.newline -eq 'crlf'){$text=$text.Replace("`r`n","`n").Replace("`r","`n").Replace("`n","`r`n")}
                 $encoded=$decoded.encoding.GetBytes($text)
                 if($decoded.bom){$encoded=[byte[]]($original[0..($decoded.bom-1)]+$encoded)}
+                if($create -and $rd.encoding -eq 'preserve' -and [IO.Path]::GetExtension($path) -ieq '.ps1'){
+                    $encoded=[byte[]](@(239,187,191)+$encoded);$decoded.bom=3
+                }
                 $backup=$null
                 if(!$create){$backup=Guard ($path+'.rdmcp.'+$rd.operation_tag+'.bak');$backupStream=[IO.File]::Open($backup,[IO.FileMode]::CreateNew,[IO.FileAccess]::Write,[IO.FileShare]::None);try{$backupStream.Write($original,0,$original.Length);$backupStream.Flush($true)}finally{$backupStream.Dispose()}}
                 $changed=$true;$stream.Position=0;$stream.Write($encoded,0,$encoded.Length);$stream.SetLength($encoded.Length);$stream.Flush($true)

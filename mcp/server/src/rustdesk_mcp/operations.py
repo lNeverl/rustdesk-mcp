@@ -100,8 +100,11 @@ class Operations:
         except TimeoutError:
             await self.cancel("execution_timeout")
         except ToolError as exc:
-            self.finish("unknown" if exc.code in {"stream_lost","submission_unknown","session_closed"} else "failed",
-                        {"error":{"code":exc.code},"termination_confirmed":False})
+            if exc.code in {"stream_lost","submission_unknown","session_closed"}:
+                operation.metadata["error"] = {"code":exc.code}
+                self.abort(exc.code)
+            else:
+                self.finish("failed", {"error":{"code":exc.code},"termination_confirmed":False})
         except (OSError,ValueError,KeyError,TypeError) as exc:
             self.finish("failed",{"error":{"code":"operation_failed","type":type(exc).__name__}})
 

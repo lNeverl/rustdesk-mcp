@@ -20,15 +20,23 @@ if (!(Test-Path (Join-Path $toolsRoot 'python/clang/native/libclang.dll')) -or
     if ($LASTEXITCODE) { throw 'Project-local native helper installation failed' }
 }
 $rustupInstaller = Join-Path $toolsRoot 'rustup-init.exe'
-if (!$NativeOnly -and !(Test-Path (Join-Path $env:RUSTUP_HOME 'toolchains/stable-x86_64-pc-windows-msvc/bin/rustc.exe'))) {
+if (!$NativeOnly -and (!(Test-Path (Join-Path $env:RUSTUP_HOME 'toolchains/stable-x86_64-pc-windows-msvc/bin/rustc.exe')) -or
+    !(Test-Path (Join-Path $env:CARGO_HOME 'bin/cargo.exe')) -or !(Test-Path (Join-Path $env:CARGO_HOME 'bin/rustc.exe')))) {
     Invoke-WebRequest 'https://win.rustup.rs/x86_64' -OutFile $rustupInstaller
     & $rustupInstaller -y --no-modify-path --profile minimal --default-toolchain stable
     if ($LASTEXITCODE) { throw 'Rust toolchain installation failed' }
 }
 $vcpkgRoot = Join-Path $toolsRoot 'vcpkg'
 if (!(Test-Path (Join-Path $vcpkgRoot '.git'))) {
-    git clone https://github.com/microsoft/vcpkg.git $vcpkgRoot
-    if ($LASTEXITCODE) { throw 'vcpkg clone failed' }
+    git init --quiet $vcpkgRoot
+    if ($LASTEXITCODE) { throw 'vcpkg repository initialization failed' }
+    git -C $vcpkgRoot remote add origin https://github.com/microsoft/vcpkg.git
+    if ($LASTEXITCODE) { throw 'vcpkg remote setup failed' }
+}
+git -C $vcpkgRoot rev-parse --verify --quiet '9e593bb18ea69cc5095e012465dcd675a822ed0d^{commit}' | Out-Null
+if ($LASTEXITCODE) {
+    git -C $vcpkgRoot fetch --quiet --depth 1 origin 9e593bb18ea69cc5095e012465dcd675a822ed0d
+    if ($LASTEXITCODE) { throw 'vcpkg baseline fetch failed' }
 }
 git -C $vcpkgRoot checkout --quiet 9e593bb18ea69cc5095e012465dcd675a822ed0d
 if ($LASTEXITCODE) { throw 'vcpkg baseline checkout failed' }

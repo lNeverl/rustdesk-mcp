@@ -37,13 +37,13 @@ def register(server,owner):
     @server.tool(annotations=write)
     async def download_url(ctx:Context,session_id:str,operation_id:Annotated[str,Field(min_length=1,max_length=128)],
                            asset_ref:str,remote_path:str,execution_timeout_s:Annotated[int,Field(ge=30,le=3600)]=1200)->dict[str,Any]:
-        """Opt-in trusted manifest download: HTTPS source, allowlisted redirects, fixed SHA256, bounded local staging, official upload and exclusive remote create. Arbitrary URLs/untrusted hashes are not accepted. Download progress can have unknown total."""
+        """Trusted manifest download: HTTPS source, allowlisted redirects, fixed SHA256, bounded local staging, official upload and exclusive remote create. Enabled by default; downloads.enabled=false disables it. Write policy still applies. Arbitrary URLs/untrusted hashes are not accepted. Download progress can have unknown total."""
         return await Workflows(owner(ctx).session(session_id)).download(operation_id,asset_ref,remote_path,execution_timeout_s=execution_timeout_s)
 
     @server.tool(annotations=write)
     async def deploy_pwsh_portable(ctx:Context,session_id:str,operation_id:Annotated[str,Field(min_length=1,max_length=128)],
                                    asset_ref:str='pwsh-7.4.20-win-x64',execution_timeout_s:Annotated[int,Field(ge=30,le=3600)]=1800)->dict[str,Any]:
-        """Opt-in pinned official PowerShell ZIP deployment into a new owned directory, hash-check before bounded safe extraction and version probe. Windows x64 only. No MSI, PATH, registry changes or default shell switch; no unchecked cache reuse."""
+        """Deploy pinned official PowerShell ZIP into a new owned directory, hash-check before bounded safe extraction and version probe. Enabled by default; downloads.enabled=false disables it. Write policy still applies. Prefer this when pwsh is absent. Windows x64 only. No MSI, PATH, registry changes or default shell switch; execute via exec_script(portable_deployment_command_id=<completed command_id>). No unchecked cache reuse."""
         return await Workflows(owner(ctx).session(session_id)).download(operation_id,asset_ref,deploy=True,execution_timeout_s=execution_timeout_s)
 
     @server.tool(annotations=write)

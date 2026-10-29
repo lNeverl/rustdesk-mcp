@@ -63,13 +63,61 @@ pwsh -NoProfile -File mcp/scripts/configure.ps1 -ConfigSource official -AutoAppr
 
 生效规则：
 
+- config.json 的 `auto_approve` 和 `allow_writes` 必须是 JSON 布尔值；字符串 `"false"` 等错误类型返回 `invalid_config`。
 - config.json 的 `auto_approve: true`，或进程环境变量 `RUSTDESK_MCP_AUTO_APPROVE=1`
   （`true/yes/on` 亦可），任一为真即启用；环境变量可写在 MCP 客户端注册的 `env` 字段里，
   与具体 Agent 的权限模式绑定。
 - 启用后写策略视为开启，审批环节自动通过并记录 `source: auto_approve` 审计；
   本地 Web 页面仍提供状态监视、输出查看、取消和断开。
 - 此模式下任何能调用本 MCP 的客户端都对远端拥有完整操作能力，
-  只应在本机可信、Agent 已处于全自动授权时使用；关闭即恢复人工审批。
+  只应在本机可信、Agent 已处于全自动授权时使用；关闭时须同时关闭配置值和环境变量并重启 MCP。
+  保留 `allow_writes: true` 时恢复人工审批，否则恢复只读策略。
+
+## 管理员终端与 UAC
+
+安装版 RustDesk 服务运行在 SYSTEM/管理员身份，不代表默认终端也有管理员权限。
+普通连接使用当前登录用户的 token；先核对 connect/status 的 system_info.administrator。
+需要管理员操作时，一次配置 Windows 本地/域管理员凭据（不是 RustDesk 密码，也不是 Windows Hello PIN）：
+
+```powershell
+pwsh -NoProfile -File mcp/scripts/configure.ps1 -ConfigSource official -AutoApprove `
+  -AdminPeerId '<peer ID>' -AdminCredentialRef admin-office -AdminUsername '<domain\user or local user>'
+```
+
+脚本交互输入 OS 密码并用当前本机用户 DPAPI 保存；重启 MCP 后，connect/status 的
+admin_credential_refs 列出该 peer 可用的引用名称，不返回密码。
+后续使用 `connect(peer_id=..., elevate=true, admin_credential_ref="admin-office")`，
+已安装且正常运行的服务通过现有管理员认证通路创建管理员终端；auto_approve 下无需 MCP 人工审批，
+同一管理员终端执行命令无需每次 RunAs/UAC。必须再次确认实际 administrator/identity/SID；可能是 SYSTEM，
+此时 HKCU 和用户配置目录属于 SYSTEM，操作登录用户的配置需指定实际用户。
+没有有效 OS 凭据时不能仅凭 RustDesk 密码进入此通路；Microsoft 在线账户暂不支持。
+
+UAC 同意作用于创建的管理员进程，不会永久提升普通父终端。
+一次同意后复用管理员进程可避免反复提示；进程退出/重启后的可用性取决于服务或计划任务。
+已有服务 + 保存的有效管理员凭据满足后续无逐次 UAC 的需求，不需要关闭系统 UAC。
+
+## PowerShell 7 下载与部署
+
+`downloads.enabled` 默认 true；配置中省略 downloads 或 enabled 时也启用。
+显式关闭的方法：
+
+```json
+{"downloads":{"enabled":false}}
+```
+
+enabled 必须是 JSON 布尔值，字符串 "false" 等返回 invalid_config。
+这个开关同时控制受信 manifest 的 download_url/deploy_pwsh_portable，不允许任意 URL；
+内置资产是固定版本、固定 SHA256 的官方 PowerShell ZIP。写策略和审批规则继续生效。
+auto_approve 不覆盖显式 disabled；外部哈希情报 intel 仍默认关闭。
+connect 不自动下载；模型收到提示，在目标缺少 pwsh 且具备写权限时优先部署便携版，
+随后用部署 command_id 调用 exec_script 的 portable_deployment_command_id。
+便携部署不改 PATH/注册表或默认终端，不要求管理员安装 MSI。
+
+本机 MCP 的 Python wheel 是服务安装包，由本机 uv 安装/管理，再用该环境的 Python 运行，不要求目标机安装 Python。
+远端确需 Python 脚本时，模型优先复用已有 uv 和 Python 环境，禁用自动下载新解释器；
+MCP 自己的远端终端设置 UV_PYTHON_DOWNLOADS=never，不改目标机的全局环境变量。
+没有可用解释器时报告缺失条件。脚本优先临时执行；需要 UAC 时尽量将一个已授权任务合并为一次临时提权，
+确认执行结果后用现有 cleanup_artifacts 清理记录中的临时产物，不创建常驻管理员代理或开机任务。
 
 ## 读取哪些内容
 

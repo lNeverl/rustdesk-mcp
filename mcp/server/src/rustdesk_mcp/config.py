@@ -53,13 +53,18 @@ class Config:
         if source not in {"profile", "official"}:
             raise ToolError("invalid_config_source")
         official_dir = Path(raw["official_config_dir"]).resolve() if raw.get("official_config_dir") else None
-        auto = (bool(raw.get("auto_approve", False)) or
+        if not isinstance(raw.get("auto_approve", False), bool) or not isinstance(raw.get("allow_writes", False), bool):
+            raise ToolError("invalid_config")
+        downloads = raw.get("downloads", {})
+        if not isinstance(downloads, dict) or not isinstance(downloads.get("enabled", True), bool):
+            raise ToolError("invalid_config")
+        auto = (raw.get("auto_approve", False) or
                 os.environ.get("RUSTDESK_MCP_AUTO_APPROVE", "").strip().lower() in {"1", "true", "yes", "on"})
-        result = cls(executable.resolve(), root, bool(raw.get("allow_writes", False)) or auto,
+        result = cls(executable.resolve(), root, raw.get("allow_writes", False) or auto,
                      raw.get("profiles", {}), raw.get("admin_profiles", {}), source, official_dir,
                      raw.get("remote_roots",[]),int(raw.get("max_sessions",4)),
                      int(raw.get("max_transfer_bytes",512*1024*1024)),int(raw.get("storage_budget_bytes",512*1024*1024)),
-                     raw.get("downloads",{}),raw.get("intel",{}),auto)
+                     downloads,raw.get("intel",{}),auto)
         if not 1 <= result.max_sessions <= 16 or result.max_transfer_bytes < 1 or result.storage_budget_bytes < 1024*1024:
             raise ToolError("invalid_config")
         return result

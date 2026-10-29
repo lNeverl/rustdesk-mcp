@@ -1,6 +1,7 @@
 import asyncio
 import base64
 import json
+import os
 import tempfile
 import unittest
 from pathlib import Path
@@ -11,6 +12,7 @@ from mcp import ClientSession, StdioServerParameters
 from mcp.client.stdio import stdio_client
 
 from rustdesk_mcp.config import Config
+from rustdesk_mcp.downloads import asset
 from rustdesk_mcp.engine import Engine
 from rustdesk_mcp.errors import ToolError
 from rustdesk_mcp.framing import Parser
@@ -44,6 +46,37 @@ class FramingTest(unittest.TestCase):
 
 
 class ConfigTest(unittest.TestCase):
+    def test_downloads_default_enabled_and_explicit_disable(self):
+        with tempfile.TemporaryDirectory() as root:
+            path = Path(root) / 'config.json'
+            for settings in ({}, {'downloads': {}}, {'downloads': {'enabled': True}}):
+                path.write_text(json.dumps(settings), 'utf-8')
+                config = Config.load(path, Path('bridge.exe'))
+                self.assertEqual(asset(config, 'pwsh-7.4.20-win-x64')['architecture'], 'x64')
+                config.data_dir = Path(root) / 'runtime'
+                engine = Engine(config)
+                self.assertTrue(engine.status(None)['optional_features']['downloads_enabled'])
+                engine.journal.close()
+            path.write_text('{"downloads": {"enabled": false}}', 'utf-8')
+            config = Config.load(path, Path('bridge.exe'))
+            with self.assertRaisesRegex(ToolError, 'downloads_disabled'):
+                asset(config, 'pwsh-7.4.20-win-x64')
+            path.write_text('{"downloads": {"enabled": "false"}}', 'utf-8')
+            with self.assertRaisesRegex(ToolError, 'invalid_config'):
+                Config.load(path, Path('bridge.exe'))
+
+    def test_policy_flags_require_json_booleans(self):
+        with tempfile.TemporaryDirectory() as root, patch.dict(os.environ, {"RUSTDESK_MCP_AUTO_APPROVE": "0"}):
+            path = Path(root) / "config.json"
+            for key in ("auto_approve", "allow_writes"):
+                path.write_text(json.dumps({key: "false"}), "utf-8")
+                with self.subTest(key=key), self.assertRaisesRegex(ToolError, "invalid_config"):
+                    Config.load(path, Path("bridge.exe"))
+            path.write_text('{"auto_approve": false}', "utf-8")
+            self.assertFalse(Config.load(path, Path("bridge.exe")).allow_writes)
+            with patch.dict(os.environ, {"RUSTDESK_MCP_AUTO_APPROVE": "1"}):
+                self.assertTrue(Config.load(path, Path("bridge.exe")).auto_approve)
+
     def test_sources_and_password_override(self):
         config = Config(Path("bridge.exe"), Path("data"), profiles={
             "local": {"peer_id": "123", "server": "custom", "server_key": "custom-key", "password_dpapi": "protected"}
@@ -105,6 +138,26 @@ class EngineTest(unittest.IsolatedAsyncioTestCase):
         cancelled = await self.engine.cancel_command("session", accepted["command_id"])
         self.assertEqual(cancelled["state"], "unknown")
         self.assertFalse(cancelled["termination_confirmed"])
+
+    async def test_unknown_operation_submission_blocks_further_commands(self):
+        self.engine.bridge.rpc.side_effect = ToolError("submission_unknown")
+        result = await self.engine.operations.submit("session", "uncertain", "fixture", {},
+            lambda ops: ops.powershell("Start-Sleep 60"), readonly=True, wait_timeout_s=1)
+        self.assertEqual(result["state"], "unknown")
+        with self.assertRaisesRegex(ToolError, "session_closed"):
+            await self.engine.exec_command("session", "next", "diagnostic:disk", wait_timeout_s=0)
+        await asyncio.sleep(0)
+        self.assertTrue(any(call.args == ("terminal.close",) for call in self.engine.bridge.rpc.await_args_list))
+
+    async def test_admin_profiles_and_command_encoding_are_explicit(self):
+        self.engine.config.admin_profiles = {
+            'available': {'peer_id': '1 23', 'username': 'admin', 'password_dpapi': 'secret'},
+            'other_peer': {'peer_id': '456', 'username': 'admin', 'password_dpapi': 'secret'}}
+        self.assertEqual(self.engine.status('session')['admin_credential_refs'], ['available'])
+        result = await self.engine.exec_command('session', 'encoding', 'Write-Output 1', native_output_encoding='gbk')
+        self.assertEqual(result['state'], 'pending_approval')
+        with self.assertRaisesRegex(ToolError, 'operation_conflict'):
+            await self.engine.exec_command('session', 'encoding', 'Write-Output 1', native_output_encoding='utf8')
 
 
 class ProtocolTest(unittest.IsolatedAsyncioTestCase):

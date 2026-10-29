@@ -123,13 +123,14 @@ class ConfirmationWeb:
         self.authority = f"127.0.0.1:{self.server.server_port}"
         self.origin = f"http://{self.authority}"
         self.thread = threading.Thread(target=self.server.serve_forever, daemon=True)
-        self.thread.start()
         try:
             entry_file = engine.config.data_dir / "approval-url.txt"
             entry_file.write_text(f"{self.origin}/#{self.token}\n", encoding="utf-8")
-            print(f"RustDesk MCP 本地确认页地址（含 token，勿共享）已写入：{entry_file}", file=sys.stderr)
         except OSError:
-            print(f"RustDesk MCP 本地确认页：{self.origin}/#{self.token}", file=sys.stderr)
+            self.server.server_close()
+            raise ToolError("approval_url_unavailable") from None
+        self.thread.start()
+        print(f"RustDesk MCP 本地确认页地址（含 token，勿共享）已写入：{entry_file}", file=sys.stderr)
 
     async def close(self):
         await asyncio.to_thread(self.server.shutdown)
